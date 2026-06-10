@@ -268,6 +268,38 @@ Arquivos **estáticos** (CSS, JS do cliente, imagens) servidos diretamente pelo 
 
 ---
 
+## Banco de Dados
+
+### usuario
+id
+nome
+email
+senha
+cpf
+telefone
+dt_nascimento
+criado_em
+perfil
+
+
+
+### perfil
+id
+funcao "nome"
+crp
+
+
+
+### agenda
+id
+dt_hora_min_ag
+criado_em
+paciente
+agendado_por
+psicologo
+
+---
+
 ## 📌 Status do Projeto
 
 🚧 **Em desenvolvimento**
