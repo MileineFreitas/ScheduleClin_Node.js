@@ -1,8 +1,5 @@
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Schedule_V1.Context;
-using Schedule_V1.Models;
+using ScheduleClin.Context;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,9 +15,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddAuthentication();
 builder.Services.AddAuthorization();
-
-builder.Services.AddIdentityApiEndpoints<User>()
-    .AddEntityFrameworkStores<AppDbContext>();
 
 var app = builder.Build();
 
@@ -38,18 +32,5 @@ app.UseRouting();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.MapSwagger();
-
-app.UseAuthorization();
-app.MapIdentityApi<User>();
-
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
-
-app.MapPost("/logout", async (SignInManager<User> signInManager, [FromBody] object empty) =>
-{
-    await signInManager.SignOutAsync();
-    return Results.Ok();
-});
 
 app.Run();

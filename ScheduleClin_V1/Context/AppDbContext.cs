@@ -1,10 +1,15 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
-using Schedule_V1.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using ScheduleClin.Models;
 
-namespace Schedule_V1.Context;
+namespace ScheduleClin.Context;
 
-public class AppDbContext(DbContextOptions options) : IdentityDbContext<User>(options)
+public class AppDbContext : DbContext
+
 {
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    {
+    }
+
+    public DbSet<User> Users { get; set; }
     public DbSet<Calendar> Calendars { get; set; }
 }

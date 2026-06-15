@@ -2,7 +2,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
-namespace Schedule_V1.Models;
+namespace ScheduleClin.Models;
 
 [Table("Calendars")]
 public class Calendar
