@@ -1,31 +1,29 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Identity;
 
 namespace ScheduleClin.Models;
 
 [Table("Users")]
-public class User
+public class User : IdentityUser<Guid>
 {
-    [Required]
-    [JsonIgnore]
-    public Guid Id { get; set; }
+    // UserName, Email, PasswordHash, SecurityStamp, Lockout etc. vêm de IdentityUser.
+    // O Identity guarda a senha SEMPRE como hash.
 
-    [Required(ErrorMessage = "O nome de usuário é obrigatório.")]
-    [StringLength(150)]
-    public string UserName { get; set; } = string.Empty;
+    [PersonalData]                 // marca dado pessoal (LGPD) p/ ferramentas do Identity
+    [StringLength(14)]
+    public string? CPF { get; set; }
 
-    [Required(ErrorMessage = "E-mail é obrigatório.")]
-    public string Email { get; set; } = string.Empty;
-
-    [Required]
-    public string Password { get; set; } = string.Empty;
-
-    public double? CPF { get; set; } //CPF será opcional, pois nem todos os usuários podem ter um CPF válido
-
-    [Required]
+    // Dados profissionais (ex.: CRP do psicólogo). Opcional: nem todo perfil tem.
+    public Guid? PerfilId { get; set; }
     public Profile? Perfil { get; set; }
 
     public DateTime DataNascimento { get; set; }
     public DateTimeOffset CreateAt { get; set; } = DateTime.UtcNow;
+
+    // RF02 — troca obrigatória de senha no primeiro acesso (senha provisória)
+    public bool MustChangePassword { get; set; } = true;
+
+    // RF07 — inativação de usuário pelo administrador (em vez de excluir)
+    public bool Active { get; set; } = true;
 }
