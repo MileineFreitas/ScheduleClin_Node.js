@@ -8,6 +8,7 @@ namespace ScheduleClin.Models;
 public class Calendar
 {
     [Key]
+    [JsonIgnore]
     public Guid CalendarID { get; set; }
 
     [Required]
@@ -20,11 +21,10 @@ public class Calendar
 
     // Paciente da consulta (FK explícita + navegação — sem o "UserIdId" estranho de antes)
     public Guid? PacienteId { get; set; }
-    public User? Paciente { get; set; }
 
     // Quem agendou (secretária, psicólogo, etc.)
     [JsonIgnore]
-    public Guid? CriadoPorId { get; set; }
-    [JsonIgnore]
-    public User? CriadoPor { get; set; }
+    public Guid? CriadoPorId { get; set; } //pegar usuario logado
+
+
 }
