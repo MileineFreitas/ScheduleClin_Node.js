@@ -7,8 +7,6 @@ namespace ScheduleClin.Models;
 [Table("Users")]
 public class User : IdentityUser<Guid>
 {
-    // UserName, Email, PasswordHash, SecurityStamp, Lockout etc. vêm de IdentityUser.
-    // O Identity guarda a senha SEMPRE como hash.
 
     [PersonalData]                 // marca dado pessoal (LGPD) p/ ferramentas do Identity
     [StringLength(14)]
