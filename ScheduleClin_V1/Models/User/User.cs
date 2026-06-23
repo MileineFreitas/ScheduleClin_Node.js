@@ -24,6 +24,5 @@ public class User : IdentityUser<Guid>
     // RF02 — troca obrigatória de senha no primeiro acesso (senha provisória)
     public bool MustChangePassword { get; set; } = true;
 
-    // RF07 — inativação de usuário pelo administrador (em vez de excluir)
     public bool Active { get; set; } = true;
 }
