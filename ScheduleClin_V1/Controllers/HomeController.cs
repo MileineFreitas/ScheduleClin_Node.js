@@ -6,5 +6,11 @@ namespace ScheduleClin.Controllers;
 [Authorize] // exige usuário autenticado — demonstra o controle de acesso (RNF07)
 public class HomeController : Controller
 {
-    public IActionResult Index() => View();
+    public IActionResult Index()
+    {
+        if (User.IsInRole("Gestor"))
+            return RedirectToAction("Index", "Admin");
+
+        return View();
+    }
 }

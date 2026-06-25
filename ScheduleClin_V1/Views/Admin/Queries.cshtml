@@ -1,0 +1,130 @@
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"]      = "Consultas";
+    ViewData["ActiveMenu"] = "consultas";
+}
+
+<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
+    <div>
+        <div class="adm-page-title">Consultas</div>
+        <div class="adm-page-sub" id="qc-sub">Carregando...</div>
+    </div>
+    <button class="adm-btn adm-btn-primary" onclick="abrirModalNovaConsulta()">
+        <i class="ti ti-plus"></i> Nova consulta
+    </button>
+</div>
+
+<div class="adm-search-wrap">
+    <div class="adm-search">
+        <i class="ti ti-search"></i>
+        <input type="text" id="qc-busca" placeholder="Buscar paciente..." oninput="filtrarConsultas()" />
+    </div>
+    <select class="adm-input" style="width:200px" id="qc-status" onchange="filtrarConsultas()">
+        <option value="">Todos os status</option>
+        <option>Pendente</option>
+        <option>Confirmada</option>
+        <option>Reagendamento Solicitado</option>
+        <option>Cancelada</option>
+    </select>
+    <select class="adm-input" style="width:200px" id="qc-psicologo" onchange="filtrarConsultas()">
+        <option value="">Todos os psicólogos</option>
+    </select>
+</div>
+
+<div class="adm-card">
+    <table class="adm-table">
+        <thead>
+            <tr>
+                <th>Paciente</th>
+                <th>Data &amp; Hora</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="qc-tbody">
+            <tr><td colspan="4" style="text-align:center;padding:32px;color:#9ca3af">Carregando...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+@await Html.PartialAsync("_ModalQueries")
+
+@section Scripts {
+<script>
+    const COLORS = ['#2563eb','#0f766e','#7c3aed','#b45309','#be185d','#0369a1'];
+    const avColor = n => { let h=0; for(let c of(n||''))h=(h*31+c.charCodeAt(0))&0xffff; return COLORS[h%COLORS.length]; };
+
+    let todasConsultas = [];
+
+    function preencherFiltroPsicologos() {
+        const sel = document.getElementById('qc-psicologo');
+        sel.innerHTML = '<option value="">Todos os psicólogos</option>' +
+            psicologosCadastrados.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+    }
+
+    async function carregarConsultas() {
+        try {
+            const res = await fetch('/api/Calendar', { credentials: 'include' });
+            todasConsultas = res.ok ? await res.json() : [];
+        } catch {
+            todasConsultas = [];
+        }
+        filtrarConsultas();
+    }
+
+    function filtrarConsultas() {
+        const busca      = document.getElementById('qc-busca').value.toLowerCase();
+        const status     = document.getElementById('qc-status').value;
+        const psicologoId = document.getElementById('qc-psicologo').value;
+
+        const filtradas = todasConsultas
+            .filter(c => c.pacienteId)
+            .filter(c => !busca || (c.pacienteNome || '').toLowerCase().includes(busca))
+            .filter(c => !status || c.status === status)
+            .filter(c => !psicologoId || c.psicologoId === psicologoId)
+            .sort((a, b) => new Date(b.scheduleDate) - new Date(a.scheduleDate));
+
+        renderizarConsultas(filtradas);
+    }
+
+    function renderizarConsultas(lista) {
+        const confirmadas = lista.filter(c => c.status === 'Confirmada').length;
+        document.getElementById('qc-sub').textContent = `${confirmadas} consulta${confirmadas !== 1 ? 's' : ''} confirmada${confirmadas !== 1 ? 's' : ''}`;
+
+        if (!lista.length) {
+            document.getElementById('qc-tbody').innerHTML =
+                `<tr><td colspan="4" style="text-align:center;padding:32px;color:#9ca3af">Nenhuma consulta encontrada.</td></tr>`;
+            return;
+        }
+
+        const rows = lista.map(c => {
+            const dt = new Date(c.scheduleDate);
+            const dataHora = `${dt.toLocaleDateString('pt-BR')} <span style="color:#9ca3af">${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · ${c.durationMinutes}min</span>`;
+
+            return `<tr>
+                <td>
+                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${avColor(c.psicologoNome)};margin-right:8px"></span>
+                    ${c.pacienteNome || c.title}
+                </td>
+                <td>${dataHora}</td>
+                <td><span class="adm-badge ${STATUS_BADGE[c.status] || 'adm-badge-gray'}">${c.status}</span></td>
+                <td style="text-align:right">
+                    <button class="adm-icon-btn" onclick='abrirDetalhesConsulta(${JSON.stringify(c).replace(/'/g, "&apos;")})'>
+                        <i class="ti ti-dots"></i>
+                    </button>
+                </td>
+            </tr>`;
+        });
+
+        document.getElementById('qc-tbody').innerHTML = rows.join('');
+    }
+
+    window.onConsultaAtualizada = carregarConsultas;
+
+    (async () => {
+        await carregarPacientesEPsicologos();
+        preencherFiltroPsicologos();
+        await carregarConsultas();
+    })();
+</script>
+}

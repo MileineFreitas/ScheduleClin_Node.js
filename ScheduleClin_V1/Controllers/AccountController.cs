@@ -62,6 +62,9 @@ public class AccountController : Controller
         if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             return Redirect(returnUrl);
 
+        if (await _userManager.IsInRoleAsync(user, Perfis.Gestor))
+            return RedirectToAction("Index", "Admin");
+
         return RedirectToAction("Index", "Home");
     }
 
@@ -103,6 +106,10 @@ public class AccountController : Controller
         await _signInManager.RefreshSignInAsync(user);
 
         TempData["Msg"] = "Senha alterada com sucesso.";
+
+        if (await _userManager.IsInRoleAsync(user, Perfis.Gestor))
+            return RedirectToAction("Index", "Admin");
+
         return RedirectToAction("Index", "Home");
     }
 

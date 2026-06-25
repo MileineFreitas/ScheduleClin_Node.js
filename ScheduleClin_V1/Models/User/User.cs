@@ -12,6 +12,10 @@ public class User : IdentityUser<Guid>
     [StringLength(14)]
     public string? CPF { get; set; }
     public Guid? PerfilId { get; set; }
+    public Profile? Perfil { get; set; }
+
+    [StringLength(20)]
+    public string? Crp { get; set; }
 
     public DateTime DataNascimento { get; set; }
     public DateTimeOffset CreateAt { get; set; } = DateTime.UtcNow;
