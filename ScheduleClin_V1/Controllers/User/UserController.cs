@@ -10,13 +10,13 @@ namespace ScheduleClin.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize] //criar role para somente Secretária. adm ou Piscólogo podem acessar. 
+[Authorize(Roles = "Gestor")]
 public class UserController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly UserManager<User> _userManager;
 
-    public UserController(AppDbContext context, UserManager<User> userManager   )
+    public UserController(AppDbContext context, UserManager<User> userManager)
     {
         _context = context;
         _userManager = userManager;
@@ -26,79 +26,110 @@ public class UserController : ControllerBase
     public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
     {
         var users = await _context.Users
-            .Select(u => new UserDto
-            {
-                Id = u.Id,
-                UserName = u.UserName,
-                Email = u.Email,
-                CPF = u.CPF,
-                PerfilId = u.PerfilId,
-                DataNascimento = u.DataNascimento,
-                MustChangePassword = u.MustChangePassword,
-                Active = u.Active
-            })
+            .Include(u => u.Perfil)
             .ToListAsync();
-        return Ok(users);
+
+        var userRoles = await _context.UserRoles.ToListAsync();
+        var roles     = await _context.Roles.ToListAsync();
+
+        var dtos = users.Select(u =>
+        {
+            var roleId   = userRoles.FirstOrDefault(ur => ur.UserId == u.Id)?.RoleId;
+            var roleName = roles.FirstOrDefault(r => r.Id == roleId)?.Name;
+
+            return new UserDto
+            {
+                Id                 = u.Id,
+                UserName           = u.UserName,
+                Email              = u.Email,
+                CPF                = u.CPF,
+                Crp                = u.Crp,
+                PerfilId           = u.PerfilId,
+                Role               = roleName ?? u.Perfil?.Name,
+                PerfilNome         = u.Perfil?.Name ?? roleName,
+                DataNascimento     = u.DataNascimento,
+                MustChangePassword = u.MustChangePassword,
+                Active             = u.Active
+            };
+        }).ToList();
+
+        return Ok(dtos);
     }
 
-    //chamada no front:  /api/users/{id}/status
+    [HttpGet("profiles")]
+    public async Task<ActionResult<IEnumerable<ProfileDto>>> GetProfiles()
+    {
+        var profiles = await _context.Profiles
+            .Where(p => Perfis.Cadastro.Contains(p.Name))
+            .Select(p => new ProfileDto
+            {
+                ProfileId   = p.ProfileId,
+                Name        = p.Name,
+                Description = p.Description
+            })
+            .ToListAsync();
+
+        return Ok(profiles);
+    }
+
     [HttpPatch("{id:guid}/status")]
     public async Task<IActionResult> AlterarStatus(Guid id, [FromBody] StatusDto statusDto)
     {
         var user = await _userManager.FindByIdAsync(id.ToString());
-        if(user == null)
-        {
-            return BadRequest("Erro interno");
-        }
+        if (user is null)
+            return BadRequest(new { message = "Usuário não encontrado." });
+
         user.Active = statusDto.IsActive;
         var result = await _userManager.UpdateAsync(user);
 
         if (!result.Succeeded)
-        {
-            return BadRequest("Erro ao atualizar status do usuário");
-        }
-        return Ok(new {id = user.Id, active = user.Active });
+            return BadRequest(new { message = "Erro ao atualizar status do usuário." });
+
+        return Ok(new { id = user.Id, active = user.Active });
     }
 
-
     [HttpPost]
-    public async Task<ActionResult<UserDto>> Create([FromBody] UserCreateDto dto)
+    public async Task<ActionResult> Create([FromBody] UserCreateDto dto)
     {
-        var perfilValido = await _context.Profiles.AnyAsync(p => p.ProfileId == dto.PerfilId
-                && (p.Name == "Psicologo" || p.Name == "Secretária"));
+        var perfil = await _context.Profiles
+            .FirstOrDefaultAsync(p => p.ProfileId == dto.PerfilId);
 
-        if (!perfilValido)
-            return BadRequest(new { message = "Perfil inválido." });
+        if (perfil is null || !Perfis.Cadastro.Contains(perfil.Name))
+            return BadRequest(new { message = "Perfil inválido. Use Psicologo ou Paciente." });
+
+        if (perfil.Name == Perfis.Psicologo && string.IsNullOrWhiteSpace(dto.Crp))
+            return BadRequest(new { message = "CRP é obrigatório para psicólogo(a)." });
 
         var user = new User
         {
-            UserName = dto.UserName,
-            Email = dto.Email,
-            CPF = dto.CPF,
-            PerfilId = dto.PerfilId,
-            DataNascimento = dto.DataNascimento,
-            MustChangePassword = true,   // RF02 — obriga troca no primeiro acesso
-            Active = true
+            UserName           = dto.UserName,
+            Email              = dto.Email,
+            CPF                = dto.CPF,
+            Crp                = perfil.Name == Perfis.Psicologo ? dto.Crp?.Trim() : null,
+            PerfilId           = dto.PerfilId,
+            DataNascimento     = dto.DataNascimento,
+            MustChangePassword = true,
+            Active             = true
         };
 
-        //senha temporaria, alterar a´pos primeiro acesso
         var senhaProvisoria = GerarSenhaProvisoria();
-
         var result = await _userManager.CreateAsync(user, senhaProvisoria);
 
         if (!result.Succeeded)
             return BadRequest(result.Errors.Select(e => e.Description));
 
-        return CreatedAtAction(nameof(Guid), new { id = user.Id }, new
+        await _userManager.AddToRoleAsync(user, perfil.Name);
+
+        return Created($"/api/User/{user.Id}", new
         {
             id = user.Id,
             userName = user.UserName,
             email = user.Email,
+            role = perfil.Name,
             senhaProvisoria
         });
     }
 
-    // PUT: api/users/{id}
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Edit(Guid id, [FromBody] UserEditDto dto)
     {
@@ -109,12 +140,19 @@ public class UserController : ControllerBase
 
         if (dto.PerfilId.HasValue)
         {
-            var perfilValido = await _context.Profiles.AnyAsync(p => p.ProfileId == dto.PerfilId
-                    && (p.Name == "Psicologo" || p.Name == "Secretária"));
+            var perfil = await _context.Profiles
+                .FirstOrDefaultAsync(p => p.ProfileId == dto.PerfilId);
 
-            if (!perfilValido)
+            if (perfil is null || !Perfis.Cadastro.Contains(perfil.Name))
                 return BadRequest(new { message = "Perfil inválido." });
+
             user.PerfilId = dto.PerfilId;
+
+            var rolesAtuais = await _userManager.GetRolesAsync(user);
+            if (rolesAtuais.Count > 0)
+                await _userManager.RemoveFromRolesAsync(user, rolesAtuais);
+
+            await _userManager.AddToRoleAsync(user, perfil.Name);
         }
 
         if (!string.IsNullOrWhiteSpace(dto.UserName))
@@ -129,6 +167,9 @@ public class UserController : ControllerBase
         if (dto.DataNascimento.HasValue)
             user.DataNascimento = dto.DataNascimento.Value;
 
+        if (dto.Crp is not null)
+            user.Crp = string.IsNullOrWhiteSpace(dto.Crp) ? null : dto.Crp.Trim();
+
         var result = await _userManager.UpdateAsync(user);
 
         if (!result.Succeeded)
@@ -139,9 +180,6 @@ public class UserController : ControllerBase
 
     private static string GerarSenhaProvisoria()
     {
-        // Senha simples que atende as regras padrão do Identity
-        // (1 maiúscula, 1 número, 1 símbolo, 8+ caracteres)
         return $"Prov@{Guid.NewGuid().ToString("N")[..6]}";
     }
-
 }

@@ -7,4 +7,5 @@ public class UserEditDto
     public string? CPF { get; set; }
     public Guid? PerfilId { get; set; }
     public DateTime? DataNascimento { get; set; }
+    public string? Crp { get; set; }
 }

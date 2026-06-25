@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ScheduleClin.Context;
 
@@ -11,9 +12,11 @@ using ScheduleClin.Context;
 namespace ScheduleClin.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260625013932_AddUserCrp")]
+    partial class AddUserCrp
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -165,22 +168,11 @@ namespace ScheduleClin.Migrations
                     b.Property<Guid?>("CriadoPorId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("DurationMinutes")
-                        .HasColumnType("int");
-
                     b.Property<Guid?>("PacienteId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("PsicologoId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("ScheduleDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("Title")
                         .IsRequired()
