@@ -304,12 +304,13 @@
     function openModal(id)  { document.getElementById(id).classList.add('open'); }
     function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-    function showToast(msg, ok = true) {
+    function showToast(msg, ok = true, duracaoMs = 4000) {
         const t = document.getElementById('adm-toast');
         t.textContent = msg;
         t.style.background = ok ? '#111827' : '#b91c1c';
         t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), 3000);
+        clearTimeout(t._timeoutId);
+        t._timeoutId = setTimeout(() => t.classList.remove('show'), duracaoMs);
     }
 
     // fechar modal clicando fora
