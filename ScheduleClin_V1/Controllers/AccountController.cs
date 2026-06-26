@@ -20,8 +20,29 @@ public class AccountController : Controller
     // RF01 — tela de login
     [HttpGet]
     [AllowAnonymous]
-    public IActionResult Login(string? returnUrl = null)
+    public async Task<IActionResult> Login(string? returnUrl = null)
     {
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user is null)
+                return RedirectToAction(nameof(Login));
+
+            if (user.MustChangePassword)
+                return RedirectToAction(nameof(ChangePassword));
+
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+
+            if (await _userManager.IsInRoleAsync(user, Perfis.Gestor))
+                return RedirectToAction("Index", "Admin");
+
+            if (await _userManager.IsInRoleAsync(user, Perfis.Psicologo))
+                return RedirectToAction("Agenda", "Psicologo");
+
+            return RedirectToAction("Index", "Home");
+        }
+
         ViewData["ReturnUrl"] = returnUrl;
         return View();
     }
@@ -61,6 +82,12 @@ public class AccountController : Controller
 
         if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             return Redirect(returnUrl);
+
+        if (await _userManager.IsInRoleAsync(user, Perfis.Gestor))
+            return RedirectToAction("Index", "Admin");
+
+        if (await _userManager.IsInRoleAsync(user, Perfis.Psicologo))
+            return RedirectToAction("Agenda", "Psicologo");
 
         return RedirectToAction("Index", "Home");
     }
@@ -103,6 +130,13 @@ public class AccountController : Controller
         await _signInManager.RefreshSignInAsync(user);
 
         TempData["Msg"] = "Senha alterada com sucesso.";
+
+        if (await _userManager.IsInRoleAsync(user, Perfis.Gestor))
+            return RedirectToAction("Index", "Admin");
+
+        if (await _userManager.IsInRoleAsync(user, Perfis.Psicologo))
+            return RedirectToAction("Agenda", "Psicologo");
+
         return RedirectToAction("Index", "Home");
     }
 

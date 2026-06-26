@@ -8,6 +8,7 @@ namespace ScheduleClin.Models;
 public class Calendar
 {
     [Key]
+    [JsonIgnore]
     public Guid CalendarID { get; set; }
 
     [Required]
@@ -18,13 +19,19 @@ public class Calendar
 
     public DateTime ScheduleDate { get; set; }
 
-    // Paciente da consulta (FK explícita + navegação — sem o "UserIdId" estranho de antes)
-    public Guid? PacienteId { get; set; }
-    public User? Paciente { get; set; }
+    public int DurationMinutes { get; set; } = 60;
 
-    // Quem agendou (secretária, psicólogo, etc.)
+    // null = bloqueio/evento da clínica (sem paciente associado)
+    public Guid? PacienteId { get; set; }
+
+    public Guid? PsicologoId { get; set; }
+
+    // Pendente | Confirmada | Reagendamento Solicitado | Cancelada | Finalizado
+    [Required]
+    [StringLength(30)]
+    public string Status { get; set; } = AppointmentStatus.Confirmada;
+
+    // Quem agendou (gestor/admin logado)
     [JsonIgnore]
     public Guid? CriadoPorId { get; set; }
-    [JsonIgnore]
-    public User? CriadoPor { get; set; }
 }
