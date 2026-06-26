@@ -1,0 +1,22 @@
+@* RNF06 (CSRF): disponibiliza o token antiforgery e o injeta automaticamente
+   no header X-CSRF-TOKEN de toda chamada fetch que altera estado. *@
+@Html.AntiForgeryToken()
+<script>
+    (function () {
+        var el = document.querySelector('input[name="__RequestVerificationToken"]');
+        var token = el ? el.value : '';
+        var origFetch = window.fetch;
+        window.fetch = function (input, init) {
+            init = init || {};
+            var method = (init.method || (input && input.method) || 'GET').toUpperCase();
+            var url = (typeof input === 'string') ? input : (input && input.url) || '';
+            var sameOrigin = url.indexOf('/') === 0 || url.indexOf(window.location.origin) === 0;
+            if (sameOrigin && ['GET', 'HEAD', 'OPTIONS', 'TRACE'].indexOf(method) === -1) {
+                var headers = new Headers(init.headers || {});
+                if (!headers.has('X-CSRF-TOKEN')) headers.set('X-CSRF-TOKEN', token);
+                init.headers = headers;
+            }
+            return origFetch.call(this, input, init);
+        };
+    })();
+</script>

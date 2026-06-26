@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using ScheduleClin.Context;
 using ScheduleClin.Models;
 using ScheduleClin.ViewModels;
 
@@ -10,11 +11,13 @@ public class AccountController : Controller
 {
     private readonly SignInManager<User> _signInManager;
     private readonly UserManager<User> _userManager;
+    private readonly AppDbContext _context;   // RNF08 — gravação de auditoria de login/logout
 
-    public AccountController(SignInManager<User> signInManager, UserManager<User> userManager)
+    public AccountController(SignInManager<User> signInManager, UserManager<User> userManager, AppDbContext context)
     {
         _signInManager = signInManager;
         _userManager = userManager;
+        _context = context;
     }
 
     // RF01 — tela de login
@@ -24,23 +27,17 @@ public class AccountController : Controller
     {
         if (User.Identity?.IsAuthenticated == true)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user is null)
+            var logged = await _userManager.GetUserAsync(User);
+            if (logged is null)
                 return RedirectToAction(nameof(Login));
 
-            if (user.MustChangePassword)
+            if (logged.MustChangePassword)
                 return RedirectToAction(nameof(ChangePassword));
 
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 return Redirect(returnUrl);
 
-            if (await _userManager.IsInRoleAsync(user, Perfis.Gestor))
-                return RedirectToAction("Index", "Admin");
-
-            if (await _userManager.IsInRoleAsync(user, Perfis.Psicologo))
-                return RedirectToAction("Agenda", "Psicologo");
-
-            return RedirectToAction("Index", "Home");
+            return await RedirecionarPorPerfil(logged);
         }
 
         ViewData["ReturnUrl"] = returnUrl;
@@ -58,6 +55,7 @@ public class AccountController : Controller
         var user = await _userManager.FindByEmailAsync(model.Email);
         if (user is null || !user.Active)
         {
+            await RegistrarAuditAsync("LoginFalhou", user?.Id, model.Email, "Usuário inexistente ou inativo");
             ModelState.AddModelError(string.Empty, "Credenciais inválidas.");
             return View(model);
         }
@@ -67,14 +65,18 @@ public class AccountController : Controller
 
         if (result.IsLockedOut)
         {
+            await RegistrarAuditAsync("LoginBloqueado", user.Id, user.Email, "Conta bloqueada por tentativas");
             ModelState.AddModelError(string.Empty, "Conta bloqueada temporariamente por excesso de tentativas.");
             return View(model);
         }
         if (!result.Succeeded)
         {
+            await RegistrarAuditAsync("LoginFalhou", user.Id, user.Email, "Senha incorreta");
             ModelState.AddModelError(string.Empty, "Credenciais inválidas.");
             return View(model);
         }
+
+        await RegistrarAuditAsync("Login", user.Id, user.Email, null);
 
         // RF02 — primeiro acesso obriga troca de senha
         if (user.MustChangePassword)
@@ -83,13 +85,7 @@ public class AccountController : Controller
         if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             return Redirect(returnUrl);
 
-        if (await _userManager.IsInRoleAsync(user, Perfis.Gestor))
-            return RedirectToAction("Index", "Admin");
-
-        if (await _userManager.IsInRoleAsync(user, Perfis.Psicologo))
-            return RedirectToAction("Agenda", "Psicologo");
-
-        return RedirectToAction("Index", "Home");
+        return await RedirecionarPorPerfil(user);
     }
 
     // RF03 — logout
@@ -98,6 +94,9 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
+        var uid = _userManager.GetUserId(User);
+        await RegistrarAuditAsync("Logout", Guid.TryParse(uid, out var g) ? g : null, User.Identity?.Name, null);
+
         await _signInManager.SignOutAsync();
         return RedirectToAction(nameof(Login));
     }
@@ -130,7 +129,16 @@ public class AccountController : Controller
         await _signInManager.RefreshSignInAsync(user);
 
         TempData["Msg"] = "Senha alterada com sucesso.";
+        return await RedirecionarPorPerfil(user);
+    }
 
+    [HttpGet]
+    [AllowAnonymous]
+    public IActionResult AccessDenied() => View();
+
+    // ───────── auxiliares ─────────
+    private async Task<IActionResult> RedirecionarPorPerfil(User user)
+    {
         if (await _userManager.IsInRoleAsync(user, Perfis.Gestor))
             return RedirectToAction("Index", "Admin");
 
@@ -140,7 +148,16 @@ public class AccountController : Controller
         return RedirectToAction("Index", "Home");
     }
 
-    [HttpGet]
-    [AllowAnonymous]
-    public IActionResult AccessDenied() => View();
+    private async Task RegistrarAuditAsync(string action, Guid? userId, string? userName, string? details)
+    {
+        _context.AuditLogs.Add(new AuditLog
+        {
+            Action    = action,
+            UserId    = userId,
+            UserName  = userName,
+            Details   = details,
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+        });
+        await _context.SaveChangesAsync();
+    }
 }

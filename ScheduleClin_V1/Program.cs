@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using ScheduleClin.Context;
@@ -8,9 +9,17 @@ using ScheduleClin.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllersWithViews();
-builder.Services.AddEndpointsApiExplorer();
+// RNF06 (CSRF): valida o token antiforgery em TODA requisição que altera estado
+// (POST/PUT/PATCH/DELETE), inclusive nas chamadas AJAX para os controllers de API.
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+});
 
+// O token chega pelo header X-CSRF-TOKEN (enviado pelo fetch via _CsrfFetch)
+builder.Services.AddAntiforgery(options => options.HeaderName = "X-CSRF-TOKEN");
+
+builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
@@ -21,9 +30,14 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// RNF08 (auditoria): acesso ao usuário/IP da requisição + interceptor de SaveChanges
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<AuditSaveChangesInterceptor>();
+
 // dotnet user-secrets para mais segurança
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+           .AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>()));
 
 // ───────── ASP.NET Core Identity ─────────
 builder.Services
@@ -57,8 +71,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Cookie.HttpOnly = true;                          // cookie inacessível via JS
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;  // só trafega em HTTPS
 
-    // Necessário para o Swagger/AJAX não serem redirecionados pra tela de Login (HTML)
-    // e sim receberem o status code correto (401/403)
+    // APIs recebem 401/403 em vez de redirecionar para a tela de Login (HTML)
     options.Events.OnRedirectToLogin = context =>
     {
         if (context.Request.Path.StartsWithSegments("/api"))
@@ -113,7 +126,7 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-app.MapControllers(); // <- necessário para mapear seus controllers de API (ex: UserController)
+app.MapControllers(); // mapeia os controllers de API (ex: UserController)
 
 // Cria os papéis e um Gestor inicial (idempotente)
 await IdentitySeeder.SeedAsync(app.Services);
