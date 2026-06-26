@@ -313,7 +313,7 @@ async function criarUsuario() {
         }
 
         closeModal('modal-novo-usuario');
-        showToast(`Usuário ${nome} criado. Senha provisória: ${data.senhaProvisoria}`);
+        showToast(`Usuário ${nome} criado. Senha provisória: ${data.senhaProvisoria}`, true, 17000);
         await carregarUsuarios();
     } catch {
         erroEl.textContent = 'Erro de conexão.';
@@ -387,6 +387,9 @@ function renderizar(lista) {
                 ${isGestor ? '' : `<button class="adm-icon-btn" title="Editar" onclick='abrirEdicao(${JSON.stringify(u).replace(/'/g, "&apos;")})'>
                     <i class="ti ti-pencil"></i>
                 </button>`}
+                <button class="adm-icon-btn" title="Redefinir senha" onclick="redefinirSenha('${u.id}', '${(u.userName || '').replace(/'/g, "\\'")}')">
+                    <i class="ti ti-key"></i>
+                </button>
             </td>
         </tr>`;
     });
@@ -432,6 +435,24 @@ async function toggleStatus(id, checkbox) {
     } catch {
         checkbox.checked = !novoStatus;
         showToast('Erro ao alterar status.', false);
+    }
+}
+
+async function redefinirSenha(id, nome) {
+    if (!confirm(`Redefinir a senha de ${nome || 'usuário'}? Uma nova senha provisória será gerada e ele(a) terá que trocá-la no próximo login.`)) return;
+
+    try {
+        const res = await fetch(`/api/User/${id}/reset-password`, {
+            method: 'PATCH',
+            credentials: 'include',
+        });
+
+        if (!res.ok) throw new Error();
+
+        const data = await res.json();
+        showToast(`Senha de ${nome} redefinida. Senha provisória: ${data.senhaProvisoria}`, true, 15000);
+    } catch {
+        showToast('Erro ao redefinir senha.', false);
     }
 }
 

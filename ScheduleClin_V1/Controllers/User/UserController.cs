@@ -100,6 +100,12 @@ public class UserController : ControllerBase
         if (perfil.Name == Perfis.Psicologo && string.IsNullOrWhiteSpace(dto.Crp))
             return BadRequest(new { message = "CRP é obrigatório para psicólogo(a)." });
 
+        if (!string.IsNullOrWhiteSpace(dto.CPF) && await _context.Users.AnyAsync(u => u.CPF == dto.CPF))
+            return BadRequest(new { message = "Já existe um usuário cadastrado com esse CPF." });
+
+        if (!string.IsNullOrWhiteSpace(dto.Crp) && await _context.Users.AnyAsync(u => u.Crp == dto.Crp.Trim()))
+            return BadRequest(new { message = "Já existe um usuário cadastrado com esse CRP." });
+
         var user = new User
         {
             UserName           = dto.UserName,
@@ -162,13 +168,25 @@ public class UserController : ControllerBase
             user.Email = dto.Email;
 
         if (dto.CPF is not null)
+        {
+            if (!string.IsNullOrWhiteSpace(dto.CPF) && await _context.Users.AnyAsync(u => u.CPF == dto.CPF && u.Id != id))
+                return BadRequest(new { message = "Já existe um usuário cadastrado com esse CPF." });
+
             user.CPF = dto.CPF;
+        }
 
         if (dto.DataNascimento.HasValue)
             user.DataNascimento = dto.DataNascimento.Value;
 
         if (dto.Crp is not null)
-            user.Crp = string.IsNullOrWhiteSpace(dto.Crp) ? null : dto.Crp.Trim();
+        {
+            var crp = string.IsNullOrWhiteSpace(dto.Crp) ? null : dto.Crp.Trim();
+
+            if (crp is not null && await _context.Users.AnyAsync(u => u.Crp == crp && u.Id != id))
+                return BadRequest(new { message = "Já existe um usuário cadastrado com esse CRP." });
+
+            user.Crp = crp;
+        }
 
         var result = await _userManager.UpdateAsync(user);
 
@@ -176,6 +194,26 @@ public class UserController : ControllerBase
             return BadRequest(result.Errors.Select(e => e.Description));
 
         return NoContent();
+    }
+
+    [HttpPatch("{id:guid}/reset-password")]
+    public async Task<IActionResult> ResetPassword(Guid id)
+    {
+        var user = await _userManager.FindByIdAsync(id.ToString());
+        if (user is null)
+            return NotFound(new { message = "Usuário não encontrado." });
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var senhaProvisoria = GerarSenhaProvisoria();
+        var result = await _userManager.ResetPasswordAsync(user, token, senhaProvisoria);
+
+        if (!result.Succeeded)
+            return BadRequest(result.Errors.Select(e => e.Description));
+
+        user.MustChangePassword = true;
+        await _userManager.UpdateAsync(user);
+
+        return Ok(new { id = user.Id, senhaProvisoria });
     }
 
     private static string GerarSenhaProvisoria()
