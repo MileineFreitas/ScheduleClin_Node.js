@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ScheduleClin.Models;
 
 namespace ScheduleClin.Controllers;
 
@@ -8,8 +9,11 @@ public class HomeController : Controller
 {
     public IActionResult Index()
     {
-        if (User.IsInRole("Gestor"))
+        if (User.IsInRole(Perfis.Gestor))
             return RedirectToAction("Index", "Admin");
+
+        if (User.IsInRole(Perfis.Psicologo))
+            return RedirectToAction("Agenda", "Psicologo");
 
         return View();
     }
