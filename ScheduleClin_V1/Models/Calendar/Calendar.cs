@@ -26,7 +26,7 @@ public class Calendar
 
     public Guid? PsicologoId { get; set; }
 
-    // Pendente | Confirmada | Reagendamento Solicitado | Cancelada
+    // Pendente | Confirmada | Reagendamento Solicitado | Cancelada | Finalizado
     [Required]
     [StringLength(30)]
     public string Status { get; set; } = AppointmentStatus.Confirmada;

@@ -100,6 +100,7 @@ public class CalendarController : ControllerBase
             c.PsicologoId == psicologoId &&
             c.ScheduleDate == scheduleDate &&
             c.Status != AppointmentStatus.Cancelada &&
+            c.Status != AppointmentStatus.Finalizado &&
             c.CalendarID != ignorarId);
     }
 
@@ -145,6 +146,9 @@ public class CalendarController : ControllerBase
         if (calendar.Status == AppointmentStatus.Cancelada)
             return BadRequest(new { message = "Não é possível editar uma consulta cancelada." });
 
+        if (calendar.Status == AppointmentStatus.Finalizado)
+            return BadRequest(new { message = "Não é possível editar uma consulta finalizada." });
+
         var novaData = dto.ScheduleDate ?? calendar.ScheduleDate;
         var novoPsicologoId = dto.PsicologoId ?? calendar.PsicologoId;
 
@@ -165,6 +169,9 @@ public class CalendarController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(dto.Status))
         {
+            if (dto.Status == AppointmentStatus.Finalizado)
+                return BadRequest(new { message = "Apenas o psicólogo(a) responsável pode finalizar a consulta." });
+
             if (!AppointmentStatus.Todos.Contains(dto.Status))
                 return BadRequest(new { message = "Status inválido." });
             calendar.Status = dto.Status;
