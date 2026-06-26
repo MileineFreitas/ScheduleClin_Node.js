@@ -85,11 +85,35 @@ public class CalendarController : ControllerBase
         return Ok(psicologos);
     }
 
+    private static readonly TimeSpan HoraAbertura = TimeSpan.FromHours(7);
+    private static readonly TimeSpan HoraFechamento = TimeSpan.FromHours(19);
+
+    private static bool ForaDoHorarioComercial(DateTime scheduleDate)
+    {
+        var hora = scheduleDate.TimeOfDay;
+        return hora < HoraAbertura || hora >= HoraFechamento;
+    }
+
+    private async Task<bool> PsicologoTemConflito(Guid psicologoId, DateTime scheduleDate, Guid? ignorarId = null)
+    {
+        return await _context.Calendars.AnyAsync(c =>
+            c.PsicologoId == psicologoId &&
+            c.ScheduleDate == scheduleDate &&
+            c.Status != AppointmentStatus.Cancelada &&
+            c.CalendarID != ignorarId);
+    }
+
     [HttpPost]
     public async Task<ActionResult> Create([FromBody] CalendarCreateDto dto)
     {
         if (string.IsNullOrWhiteSpace(dto.Title))
             return BadRequest(new { message = "Título é obrigatório." });
+
+        if (ForaDoHorarioComercial(dto.ScheduleDate))
+            return BadRequest(new { message = "Só é possível agendar consultas entre 07:00 e 19:59." });
+
+        if (dto.PsicologoId.HasValue && await PsicologoTemConflito(dto.PsicologoId.Value, dto.ScheduleDate))
+            return BadRequest(new { message = "Esse psicólogo(a) já tem uma consulta nesse mesmo dia e horário." });
 
         var criadoPorId = Guid.Parse(_userManager.GetUserId(User)!);
 
@@ -121,17 +145,23 @@ public class CalendarController : ControllerBase
         if (calendar.Status == AppointmentStatus.Cancelada)
             return BadRequest(new { message = "Não é possível editar uma consulta cancelada." });
 
+        var novaData = dto.ScheduleDate ?? calendar.ScheduleDate;
+        var novoPsicologoId = dto.PsicologoId ?? calendar.PsicologoId;
+
+        if (ForaDoHorarioComercial(novaData))
+            return BadRequest(new { message = "Só é possível agendar consultas entre 07:00 e 19:59." });
+
+        if (novoPsicologoId.HasValue && await PsicologoTemConflito(novoPsicologoId.Value, novaData, calendar.CalendarID))
+            return BadRequest(new { message = "Esse psicólogo(a) já tem uma consulta nesse mesmo dia e horário." });
+
         if (!string.IsNullOrWhiteSpace(dto.Title))
             calendar.Title = dto.Title;
 
-        if (dto.ScheduleDate.HasValue)
-            calendar.ScheduleDate = dto.ScheduleDate.Value;
+        calendar.ScheduleDate = novaData;
+        calendar.PsicologoId = novoPsicologoId;
 
         if (dto.DurationMinutes.HasValue)
             calendar.DurationMinutes = dto.DurationMinutes.Value;
-
-        if (dto.PsicologoId.HasValue)
-            calendar.PsicologoId = dto.PsicologoId;
 
         if (!string.IsNullOrWhiteSpace(dto.Status))
         {

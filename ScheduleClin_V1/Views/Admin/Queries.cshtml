@@ -51,9 +51,6 @@
 
 @section Scripts {
 <script>
-    const COLORS = ['#2563eb','#0f766e','#7c3aed','#b45309','#be185d','#0369a1'];
-    const avColor = n => { let h=0; for(let c of(n||''))h=(h*31+c.charCodeAt(0))&0xffff; return COLORS[h%COLORS.length]; };
-
     let todasConsultas = [];
 
     function preencherFiltroPsicologos() {
@@ -103,7 +100,7 @@
 
             return `<tr>
                 <td>
-                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${avColor(c.psicologoNome)};margin-right:8px"></span>
+                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${avatarColor(c.psicologoNome)};margin-right:8px"></span>
                     ${c.pacienteNome || c.title}
                 </td>
                 <td>${dataHora}</td>

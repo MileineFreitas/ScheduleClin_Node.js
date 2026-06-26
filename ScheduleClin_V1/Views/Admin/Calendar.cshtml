@@ -153,7 +153,7 @@
 
         const fim = new Date(inicioSemana); fim.setDate(fim.getDate() + 6);
         try {
-            const res = await fetch(`/api/Calendar?inicio=${inicioSemana.toISOString()}&fim=${fim.toISOString()}`, { credentials: 'include' });
+            const res = await fetch(`/api/Calendar?inicio=${dataLocalStr(inicioSemana)}T00:00:00&fim=${dataLocalStr(fim)}T23:59:59`, { credentials: 'include' });
             consultasSemana = res.ok ? await res.json() : [];
         } catch {
             consultasSemana = [];
@@ -162,7 +162,10 @@
         renderBody();
     }
 
-    window.onConsultaAtualizada = carregarAgenda;
+    window.onConsultaAtualizada = function (dataConsultaIso) {
+        if (dataConsultaIso) inicioSemana = inicioDaSemana(new Date(dataConsultaIso));
+        return carregarAgenda();
+    };
 
     (async () => {
         await carregarPacientesEPsicologos();

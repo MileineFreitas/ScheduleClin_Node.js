@@ -139,6 +139,12 @@ let pacientesCadastrados = [];
 let psicologosCadastrados = [];
 let consultaSelecionada = null;
 
+// trabalha sempre com hora local "pura" (sem conversão de timezone) —
+// data/hora digitada pelo usuário deve ser exatamente o que é salvo e exibido
+const pad2 = n => String(n).padStart(2, '0');
+const dataLocalStr = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const horaLocalStr = d => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+
 // hook que cada página define para recarregar sua própria lista após criar/editar/cancelar
 window.onConsultaAtualizada = window.onConsultaAtualizada || (() => {});
 
@@ -167,7 +173,7 @@ async function abrirModalNovaConsulta() {
     document.getElementById('nc-paciente').value  = '';
     document.getElementById('nc-psicologo').value = '';
     document.getElementById('nc-titulo').value    = '';
-    document.getElementById('nc-data').value      = '';
+    document.getElementById('nc-data').value      = dataLocalStr(new Date());
     document.getElementById('nc-hora').value      = '';
     document.getElementById('nc-duracao').value   = 60;
     document.getElementById('nc-erro').style.display = 'none';
@@ -193,12 +199,19 @@ async function criarConsulta() {
         erroEl.style.display = 'block';
         return;
     }
+    if (hora < '07:00' || hora >= '20:00') {
+        erroEl.textContent = 'Só é possível agendar consultas entre 07:00 e 19:59.';
+        erroEl.style.display = 'block';
+        return;
+    }
 
     const pacienteNome = pacientesCadastrados.find(p => p.id === pacienteId)?.nome || 'Paciente';
 
+    const scheduleDate = `${data}T${hora}:00`;
+
     const body = {
         title:           titulo || `Consulta — ${pacienteNome}`,
-        scheduleDate:    new Date(`${data}T${hora}:00`).toISOString(),
+        scheduleDate:    scheduleDate,
         durationMinutes: duracao,
         pacienteId:      pacienteId,
         psicologoId:     psicologoId,
@@ -220,7 +233,7 @@ async function criarConsulta() {
 
         closeModal('modal-nova-consulta');
         showToast('Consulta agendada.');
-        window.onConsultaAtualizada();
+        window.onConsultaAtualizada(scheduleDate);
     } catch {
         erroEl.textContent = 'Erro de conexão.';
         erroEl.style.display = 'block';
@@ -264,8 +277,8 @@ function mostrarEdicaoConsulta(modo) {
     document.getElementById('ed-titulo').value   = consultaSelecionada.title || '';
     document.getElementById('ed-psicologo').value = consultaSelecionada.psicologoId || '';
     document.getElementById('ed-status').value   = consultaSelecionada.status;
-    document.getElementById('ed-data').value     = dt.toISOString().substring(0, 10);
-    document.getElementById('ed-hora').value     = dt.toTimeString().substring(0, 5);
+    document.getElementById('ed-data').value     = dataLocalStr(dt);
+    document.getElementById('ed-hora').value     = horaLocalStr(dt);
     document.getElementById('ed-duracao').value  = consultaSelecionada.durationMinutes;
 }
 
@@ -280,6 +293,12 @@ async function salvarEdicaoConsulta() {
     const hora    = document.getElementById('ed-hora').value;
     const erroEl  = document.getElementById('ed-erro');
 
+    if (data && hora && (hora < '07:00' || hora >= '20:00')) {
+        erroEl.textContent = 'Só é possível agendar consultas entre 07:00 e 19:59.';
+        erroEl.style.display = 'block';
+        return;
+    }
+
     const body = {
         title:           document.getElementById('ed-titulo-group').style.display !== 'none'
                               ? document.getElementById('ed-titulo').value.trim() : undefined,
@@ -287,7 +306,7 @@ async function salvarEdicaoConsulta() {
                               ? (document.getElementById('ed-psicologo').value || undefined) : undefined,
         status:           document.getElementById('ed-status-group').style.display !== 'none'
                               ? document.getElementById('ed-status').value : undefined,
-        scheduleDate:     data && hora ? new Date(`${data}T${hora}:00`).toISOString() : undefined,
+        scheduleDate:     data && hora ? `${data}T${hora}:00` : undefined,
         durationMinutes:  parseInt(document.getElementById('ed-duracao').value, 10) || undefined,
     };
 
@@ -307,7 +326,7 @@ async function salvarEdicaoConsulta() {
 
         closeModal('modal-detalhes-consulta');
         showToast('Consulta atualizada.');
-        window.onConsultaAtualizada();
+        window.onConsultaAtualizada(body.scheduleDate);
     } catch {
         erroEl.textContent = 'Erro de conexão.';
         erroEl.style.display = 'block';

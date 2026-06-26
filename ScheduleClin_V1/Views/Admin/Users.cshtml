@@ -56,30 +56,30 @@
         </div>
 
         <div class="adm-field">
-            <label>Nome completo</label>
+            <label>Nome completo *</label>
             <input class="adm-input" id="nu-nome" placeholder="Nome do usuário" />
         </div>
         <div class="adm-field">
-            <label>E-mail</label>
+            <label>E-mail *</label>
             <input class="adm-input" id="nu-email" type="email" placeholder="email@clinica.com" />
         </div>
         <div class="adm-field">
-            <label>CPF</label>
-            <input class="adm-input" id="nu-cpf" placeholder="000.000.000-00" />
+            <label>CPF *</label>
+            <input class="adm-input" id="nu-cpf" placeholder="000.000.000-00" maxlength="14" oninput="aplicarMascaraCpf(this)" />
         </div>
         <div class="adm-field">
-            <label>Data de nascimento</label>
-            <input class="adm-input" id="nu-nasc" type="date" />
+            <label>Data de nascimento *</label>
+            <input class="adm-input" id="nu-nasc" placeholder="dd/mm/aaaa" maxlength="10" oninput="aplicarMascaraData(this)" />
         </div>
         <div class="adm-field">
-            <label>Perfil</label>
+            <label>Perfil *</label>
             <select class="adm-input" id="nu-perfil" onchange="atualizarCamposPerfil()">
                 <option value="">Selecione...</option>
             </select>
         </div>
         <div class="adm-field" id="nu-crp-group" style="display:none">
-            <label>CRP</label>
-            <input class="adm-input" id="nu-crp" placeholder="06/123456" />
+            <label>CRP *</label>
+            <input class="adm-input" id="nu-crp" placeholder="00/000000" maxlength="9" oninput="aplicarMascaraCrp(this)" />
         </div>
 
         <div id="nu-erro" style="font-size:13px;color:#b91c1c;margin-bottom:12px;display:none"></div>
@@ -113,15 +113,15 @@
         </div>
         <div class="adm-field" id="ed-crp-group" style="display:none">
             <label>CRP</label>
-            <input class="adm-input" id="ed-crp" placeholder="06/123456" />
+            <input class="adm-input" id="ed-crp" placeholder="00/000000" maxlength="9" oninput="aplicarMascaraCrp(this)" />
         </div>
         <div class="adm-field">
             <label>CPF</label>
-            <input class="adm-input" id="ed-cpf" />
+            <input class="adm-input" id="ed-cpf" maxlength="14" oninput="aplicarMascaraCpf(this)" />
         </div>
         <div class="adm-field">
             <label>Data de nascimento</label>
-            <input class="adm-input" id="ed-nasc" type="date" />
+            <input class="adm-input" id="ed-nasc" placeholder="dd/mm/aaaa" maxlength="10" oninput="aplicarMascaraData(this)" />
         </div>
         <div id="ed-erro" style="font-size:13px;color:#b91c1c;margin-bottom:12px;display:none"></div>
         <div class="adm-modal-footer">
@@ -151,6 +151,43 @@ const PROFILE_IDS = {
 
 let todosUsuarios = [];
 let perfisCadastro = [];
+
+function aplicarMascaraCpf(input) {
+    let v = input.value.replace(/\D/g, '').slice(0, 11);
+    v = v.replace(/(\d{3})(\d)/, '$1.$2')
+         .replace(/(\d{3})(\d)/, '$1.$2')
+         .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    input.value = v;
+}
+
+function aplicarMascaraCrp(input) {
+    let v = input.value.replace(/\D/g, '').slice(0, 8);
+    v = v.replace(/(\d{2})(\d)/, '$1/$2');
+    input.value = v;
+}
+
+function aplicarMascaraData(input) {
+    let v = input.value.replace(/\D/g, '').slice(0, 8);
+    v = v.replace(/(\d{2})(\d)/, '$1/$2')
+         .replace(/(\d{2})(\d)/, '$1/$2');
+    input.value = v;
+}
+
+// "dd/mm/aaaa" -> "yyyy-MM-dd" (ISO, sem hora) — null se inválida/incompleta
+function dataBrParaIso(dataBr) {
+    const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(dataBr || '');
+    if (!m) return null;
+    const [, dia, mes, ano] = m;
+    return `${ano}-${mes}-${dia}`;
+}
+
+// Date (ou string ISO) -> "dd/mm/aaaa"
+function isoParaDataBr(data) {
+    const dt = new Date(data);
+    if (isNaN(dt)) return '';
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(dt.getDate())}/${pad(dt.getMonth() + 1)}/${dt.getFullYear()}`;
+}
 
 function resolvePerfil(u) {
     const r = (u.role || u.perfilNome || '').toLowerCase();
@@ -223,8 +260,8 @@ async function criarUsuario() {
     const { id: perfilId, name: perfilNome } = perfilSelecionado();
     const erroEl = document.getElementById('nu-erro');
 
-    if (!nome || !email) {
-        erroEl.textContent = 'Nome e e-mail são obrigatórios.';
+    if (!nome || !email || !cpf || !nasc) {
+        erroEl.textContent = 'Nome, e-mail, CPF, data de nascimento e Perfil são obrigatórios.';
         erroEl.style.display = 'block';
         return;
     }
@@ -238,14 +275,20 @@ async function criarUsuario() {
         erroEl.style.display = 'block';
         return;
     }
+    const dataIso = dataBrParaIso(nasc);
+    if (!dataIso) {
+        erroEl.textContent = 'Data de nascimento inválida. Use o formato dd/mm/aaaa.';
+        erroEl.style.display = 'block';
+        return;
+    }
     erroEl.style.display = 'none';
 
     const body = {
         userName:       nome,
         email:          email,
-        cpf:            cpf || '',
+        cpf:            cpf,
         perfilId:       perfilId,
-        dataNascimento: nasc ? new Date(nasc).toISOString() : new Date('2000-01-01').toISOString(),
+        dataNascimento: `${dataIso}T00:00:00`,
         crp:            perfilNome === 'Psicologo' ? crp : null,
     };
 
@@ -400,7 +443,7 @@ function abrirEdicao(u) {
     document.getElementById('ed-email').value = u.email    || '';
     document.getElementById('ed-cpf').value   = u.cpf      || '';
     document.getElementById('ed-nasc').value  = u.dataNascimento
-        ? u.dataNascimento.substring(0, 10) : '';
+        ? isoParaDataBr(u.dataNascimento) : '';
 
     document.getElementById('ed-crp-group').style.display = isPsicologo ? 'block' : 'none';
     document.getElementById('ed-crp').value = u.crp || '';
@@ -418,12 +461,20 @@ async function salvarEdicao() {
     const nasc  = document.getElementById('ed-nasc').value;
     const erroEl = document.getElementById('ed-erro');
 
+    const dataIso = nasc ? dataBrParaIso(nasc) : null;
+    if (nasc && !dataIso) {
+        erroEl.textContent = 'Data de nascimento inválida. Use o formato dd/mm/aaaa.';
+        erroEl.style.display = 'block';
+        return;
+    }
+    erroEl.style.display = 'none';
+
     const body = {
         userName:       nome   || undefined,
         email:          email  || undefined,
         cpf:            cpf    || undefined,
         crp:            document.getElementById('ed-crp-group').style.display !== 'none' ? crp : undefined,
-        dataNascimento: nasc ? new Date(nasc).toISOString() : undefined,
+        dataNascimento: dataIso ? `${dataIso}T00:00:00` : undefined,
     };
 
     try {
