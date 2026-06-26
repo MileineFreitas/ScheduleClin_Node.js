@@ -12,4 +12,7 @@ public class PsicologoController : Controller
 
     // GET /Psicologo/Agenda
     public IActionResult Agenda() => View();
+
+    // GET /Psicologo/Consultas
+    public IActionResult Consultas() => View("Queries");
 }

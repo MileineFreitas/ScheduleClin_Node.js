@@ -65,6 +65,9 @@ public class AccountController : Controller
         if (await _userManager.IsInRoleAsync(user, Perfis.Gestor))
             return RedirectToAction("Index", "Admin");
 
+        if (await _userManager.IsInRoleAsync(user, Perfis.Psicologo))
+            return RedirectToAction("Agenda", "Psicologo");
+
         return RedirectToAction("Index", "Home");
     }
 
@@ -109,6 +112,9 @@ public class AccountController : Controller
 
         if (await _userManager.IsInRoleAsync(user, Perfis.Gestor))
             return RedirectToAction("Index", "Admin");
+
+        if (await _userManager.IsInRoleAsync(user, Perfis.Psicologo))
+            return RedirectToAction("Agenda", "Psicologo");
 
         return RedirectToAction("Index", "Home");
     }

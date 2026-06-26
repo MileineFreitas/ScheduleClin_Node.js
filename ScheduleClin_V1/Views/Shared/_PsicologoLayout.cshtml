@@ -77,11 +77,52 @@
         .adm-page-title   { font-size: 22px; font-weight: 600; color: #111827; margin-bottom: 4px; }
         .adm-page-sub     { font-size: 14px; color: #6b7280; margin-bottom: 24px; }
 
-        /* ── cards ── */
+        /* ── cards / table ── */
         .adm-card {
             background: #fff; border: 1px solid #e8eaf0;
             border-radius: 12px; overflow: hidden; margin-bottom: 16px;
         }
+        .adm-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .adm-table th {
+            padding: 11px 16px; text-align: left;
+            font-size: 11px; font-weight: 600; color: #9ca3af;
+            text-transform: uppercase; letter-spacing: .5px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .adm-table td {
+            padding: 13px 16px; border-bottom: 1px solid #f3f4f6;
+            color: #374151; vertical-align: middle;
+        }
+        .adm-table tr:last-child td { border-bottom: none; }
+        .adm-table tr:hover td { background: #fafafa; }
+
+        /* user cell */
+        .adm-user-cell { display: flex; align-items: center; gap: 10px; }
+        .adm-user-cell .av {
+            width: 34px; height: 34px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 600; color: #fff; flex-shrink: 0;
+        }
+        .adm-user-cell .info strong { display: block; font-size: 14px; color: #111827; }
+        .adm-user-cell .info span   { font-size: 12px; color: #9ca3af; }
+
+        /* search */
+        .adm-search-wrap { display: flex; gap: 10px; margin-bottom: 20px; }
+        .adm-search {
+            flex: 1; display: flex; align-items: center; gap: 8px;
+            background: #fff; border: 1px solid #e8eaf0;
+            border-radius: 8px; padding: 8px 14px;
+        }
+        .adm-search input { border: none; outline: none; font-size: 14px; width: 100%; color: #374151; }
+        .adm-search .ti { color: #9ca3af; font-size: 18px; }
+
+        /* input */
+        .adm-input {
+            width: 100%; padding: 9px 12px;
+            border: 1px solid #e8eaf0; border-radius: 8px;
+            font-size: 14px; color: #374151; background: #fff;
+        }
+        .adm-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
 
         /* badges */
         .adm-badge {
@@ -142,6 +183,16 @@
         }
         .adm-modal-close:hover { color: #374151; }
 
+        /* form */
+        .adm-field { margin-bottom: 16px; }
+        .adm-field label {
+            display: block; font-size: 11px; font-weight: 600;
+            color: #6b7280; text-transform: uppercase; letter-spacing: .4px;
+            margin-bottom: 5px;
+        }
+        .adm-modal-footer { display: flex; gap: 10px; margin-top: 8px; }
+        .adm-modal-footer .adm-btn { flex: 1; justify-content: center; }
+
         /* toast */
         .adm-toast {
             position: fixed; bottom: 24px; right: 24px; z-index: 9999;
@@ -169,6 +220,10 @@
             <a class="adm-nav-link @(ViewData["ActiveMenu"]?.ToString()=="agenda"?"active":"")"
                asp-controller="Psicologo" asp-action="Agenda">
                 <i class="ti ti-calendar"></i> Minha Agenda
+            </a>
+            <a class="adm-nav-link @(ViewData["ActiveMenu"]?.ToString()=="consultas"?"active":"")"
+               asp-controller="Psicologo" asp-action="Consultas">
+                <i class="ti ti-clipboard-list"></i> Minhas Consultas
             </a>
         </nav>
 

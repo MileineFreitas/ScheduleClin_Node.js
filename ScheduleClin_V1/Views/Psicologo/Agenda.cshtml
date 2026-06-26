@@ -46,11 +46,14 @@
         <div class="adm-page-title">Minha Agenda</div>
         <div class="adm-page-sub" id="cal-sub">Seus agendamentos da semana</div>
     </div>
+    <button class="adm-btn adm-btn-primary" onclick="abrirModalNovaConsulta()">
+        <i class="ti ti-plus"></i> Nova consulta
+    </button>
 </div>
 
 <div class="cal-toolbar">
     <div class="cal-nav">
-        <button class="adm-icon-btn" onclick="mudarSemana(-1)"><i class="ti ti-chevron-left"></i></button>
+        <button class="adm-icon-btn" id="btn-semana-anterior" onclick="mudarSemana(-1)"><i class="ti ti-chevron-left"></i></button>
         <button class="adm-icon-btn" onclick="mudarSemana(1)"><i class="ti ti-chevron-right"></i></button>
         <span class="cal-nav-label" id="cal-label"></span>
     </div>
@@ -62,32 +65,7 @@
     <div class="cal-grid" id="cal-body" style="height:728px"></div>
 </div>
 
-<!-- ── MODAL DETALHES (somente leitura) ── -->
-<div class="adm-modal-bg" id="modal-detalhes-consulta">
-    <div class="adm-modal">
-        <div class="adm-modal-head">
-            <h3>Detalhes da Consulta</h3>
-            <button class="adm-modal-close" onclick="closeModal('modal-detalhes-consulta')">
-                <i class="ti ti-x"></i>
-            </button>
-        </div>
-
-        <div style="border-left:3px solid #2563eb;background:#eff6ff;padding:10px 14px;border-radius:8px;margin-bottom:16px">
-            <div style="font-size:11px;font-weight:700;letter-spacing:.4px;color:#2563eb;text-transform:uppercase">Paciente</div>
-            <div id="dc-paciente" style="font-size:16px;font-weight:600;color:#111827"></div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;color:#374151;font-size:14px">
-            <i class="ti ti-clipboard-text"></i> <span id="dc-titulo"></span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;color:#374151;font-size:14px">
-            <i class="ti ti-calendar"></i> <span id="dc-data"></span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;color:#374151;font-size:14px">
-            <i class="ti ti-clock"></i> <span id="dc-hora"></span>
-        </div>
-        <div><span class="adm-badge" id="dc-status"></span></div>
-    </div>
-</div>
+@await Html.PartialAsync("_ModalNovaConsulta")
 
 @section Scripts {
 <script>
@@ -96,15 +74,9 @@
     const ALTURA_HORA = 56;
     const DIAS_SEMANA = ['Seg','Ter','Qua','Qui','Sex','Sáb'];
 
-    const STATUS_BADGE = {
-        'Pendente':                  'adm-badge-orange',
-        'Confirmada':                'adm-badge-green',
-        'Reagendamento Solicitado':  'adm-badge-blue',
-        'Cancelada':                 'adm-badge-red',
-    };
-
     let inicioSemana = inicioDaSemana(new Date());
     let consultasSemana = [];
+    const inicioSemanaAtual = inicioDaSemana(new Date());
 
     function inicioDaSemana(data) {
         const d = new Date(data);
@@ -114,7 +86,17 @@
         return d;
     }
 
+    function inicioDoDia(data) {
+        const d = new Date(data);
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+
+    function ehHojeOuDepois(scheduleDate) {
+        return inicioDoDia(scheduleDate) >= inicioDoDia(new Date());
+    }
+
     function mudarSemana(delta) {
+        if (delta < 0 && inicioSemana.getTime() <= inicioSemanaAtual.getTime()) return;
         inicioSemana.setDate(inicioSemana.getDate() + delta * 7);
         carregarAgenda();
     }
@@ -122,6 +104,14 @@
     function irParaHoje() {
         inicioSemana = inicioDaSemana(new Date());
         carregarAgenda();
+    }
+
+    function atualizarNavSemana() {
+        const btnAnterior = document.getElementById('btn-semana-anterior');
+        const naSemanaAtual = inicioSemana.getTime() <= inicioSemanaAtual.getTime();
+        btnAnterior.disabled = naSemanaAtual;
+        btnAnterior.style.opacity = naSemanaAtual ? '0.4' : '1';
+        btnAnterior.style.cursor = naSemanaAtual ? 'not-allowed' : 'pointer';
     }
 
     function renderHead() {
@@ -152,6 +142,7 @@
         for (let i = 0; i < 6; i++) {
             const dia = new Date(inicioSemana); dia.setDate(dia.getDate() + i);
             const doDia = consultasSemana.filter(c => {
+                if (!ehHojeOuDepois(c.scheduleDate)) return false;
                 const dt = new Date(c.scheduleDate);
                 return dt.getFullYear() === dia.getFullYear() && dt.getMonth() === dia.getMonth() && dt.getDate() === dia.getDate();
             });
@@ -181,38 +172,31 @@
         document.getElementById('cal-body').innerHTML = html;
     }
 
-    function abrirDetalhesConsulta(consulta) {
-        const dt = new Date(consulta.scheduleDate);
-
-        document.getElementById('dc-paciente').textContent = consulta.pacienteNome || '(Bloqueio / evento)';
-        document.getElementById('dc-titulo').textContent   = consulta.title || '—';
-        document.getElementById('dc-data').textContent     = dt.toLocaleDateString('pt-BR');
-        document.getElementById('dc-hora').textContent     = `${dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} · ${consulta.durationMinutes} min`;
-
-        const statusEl = document.getElementById('dc-status');
-        statusEl.textContent = consulta.status;
-        statusEl.className = 'adm-badge ' + (STATUS_BADGE[consulta.status] || 'adm-badge-gray');
-
-        openModal('modal-detalhes-consulta');
-    }
-
     async function carregarAgenda() {
         renderHead();
+        atualizarNavSemana();
 
         const fim = new Date(inicioSemana); fim.setDate(fim.getDate() + 6);
         try {
-            const res = await fetch(`/api/PsicologoAgenda?inicio=${inicioSemana.toISOString()}&fim=${fim.toISOString()}`, { credentials: 'include' });
+            const res = await fetch(`/api/PsicologoAgenda?inicio=${inicioSemana.toISOString()}&fim=${fim.toISOString()}&desdeHoje=true`, { credentials: 'include' });
             consultasSemana = res.ok ? await res.json() : [];
         } catch {
             consultasSemana = [];
         }
 
-        const ativas = consultasSemana.filter(c => c.status !== 'Cancelada' && c.pacienteId).length;
+        const ativas = consultasSemana.filter(c =>
+            ehHojeOuDepois(c.scheduleDate) && c.status !== 'Cancelada' && c.pacienteId
+        ).length;
         document.getElementById('cal-sub').textContent =
-            `${ativas} consulta${ativas !== 1 ? 's' : ''} agendada${ativas !== 1 ? 's' : ''} nesta semana`;
+            `${ativas} consulta${ativas !== 1 ? 's' : ''} agendada${ativas !== 1 ? 's' : ''} a partir de hoje`;
 
         renderBody();
     }
+
+    window.onConsultaAtualizada = function (dataConsultaIso) {
+        if (dataConsultaIso) inicioSemana = inicioDaSemana(new Date(dataConsultaIso));
+        return carregarAgenda();
+    };
 
     (async () => {
         await carregarAgenda();
