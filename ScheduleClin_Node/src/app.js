@@ -96,7 +96,7 @@ function createApp() {
   app.use('/api/PsicologoAgenda', psicologoAgendaApi);
   app.use('/api/PacienteAgenda', pacienteAgendaApi);
 
-  app.use((err, req, res, next) => {
+  app.use((err, req, res, _next) => {
     const dbUnreachable = err?.code === 'P1001'
       || err?.code === 'P1017'
       || err?.name === 'PrismaClientInitializationError'

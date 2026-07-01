@@ -3,7 +3,9 @@
  * Retorna null se inválida.
  */
 function parseDataNascimento(value) {
-  if (value == null || value === '') return null;
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
 
   const str = String(value).trim();
 
@@ -17,7 +19,7 @@ function parseDataNascimento(value) {
       date.getFullYear() === ano
       && date.getMonth() === mes - 1
       && date.getDate() === dia
-    ) return date;
+    ) {return date;}
     return null;
   }
 
@@ -31,12 +33,12 @@ function parseDataNascimento(value) {
       date.getFullYear() === ano
       && date.getMonth() === mes - 1
       && date.getDate() === dia
-    ) return date;
+    ) {return date;}
     return null;
   }
 
   const parsed = new Date(str);
-  if (Number.isNaN(parsed.getTime())) return null;
+  if (Number.isNaN(parsed.getTime())) {return null;}
   return parsed;
 }
 

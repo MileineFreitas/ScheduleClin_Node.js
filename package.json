@@ -8,7 +8,9 @@
     "dev": "npm run dev --prefix ScheduleClin_Node",
     "postinstall": "npm install --prefix ScheduleClin_Node",
     "prisma:generate": "npm run prisma:generate --prefix ScheduleClin_Node",
-    "prisma:studio": "npm run prisma:studio --prefix ScheduleClin_Node"
+    "prisma:studio": "npm run prisma:studio --prefix ScheduleClin_Node",
+    "lint": "npm run lint --prefix ScheduleClin_Node",
+    "lint:fix": "npm run lint:fix --prefix ScheduleClin_Node"
   },
   "engines": {
     "node": ">=18"

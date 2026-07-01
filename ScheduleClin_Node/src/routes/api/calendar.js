@@ -35,7 +35,7 @@ router.get('/psicologos', requireRole('Gestor'), async (req, res) => {
 router.post('/', requireRole('Gestor'), async (req, res) => {
   try {
     const result = await calendarService.createCalendar(req.body, req.session.userId);
-    if (!result.ok) return res.status(result.status).json({ message: result.message });
+    if (!result.ok) {return res.status(result.status).json({ message: result.message });}
     res.status(result.status).location(`/api/Calendar/${result.body.id}`).json(result.body);
   } catch (err) {
     console.error(err);
@@ -46,7 +46,7 @@ router.post('/', requireRole('Gestor'), async (req, res) => {
 router.put('/:id', requireRole('Gestor'), async (req, res) => {
   try {
     const result = await calendarService.editCalendar(req.params.id, req.body);
-    if (!result.ok) return res.status(result.status).json({ message: result.message });
+    if (!result.ok) {return res.status(result.status).json({ message: result.message });}
     res.sendStatus(result.status);
   } catch (err) {
     console.error(err);
@@ -57,7 +57,7 @@ router.put('/:id', requireRole('Gestor'), async (req, res) => {
 router.patch('/:id/cancel', requireRole('Gestor'), async (req, res) => {
   try {
     const result = await calendarService.cancelCalendar(req.params.id);
-    if (!result.ok) return res.status(result.status).json({ message: result.message });
+    if (!result.ok) {return res.status(result.status).json({ message: result.message });}
     res.json(result.body);
   } catch (err) {
     console.error(err);

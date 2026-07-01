@@ -1,7 +1,6 @@
 const express = require('express');
 const { requireRole } = require('../../middleware/auth');
 const calendarService = require('../../services/calendarService');
-const { getPrisma } = require('../../utils/prisma');
 
 const router = express.Router();
 
@@ -39,7 +38,7 @@ router.post('/', requireRole('Paciente'), async (req, res) => {
       req.session.userId,
       req.session.userName,
     );
-    if (!result.ok) return res.status(result.status).json({ message: result.message });
+    if (!result.ok) {return res.status(result.status).json({ message: result.message });}
     res.status(result.status).location(`/api/PacienteAgenda/${result.body.id}`).json(result.body);
   } catch (err) {
     console.error(err);
@@ -52,7 +51,7 @@ router.patch('/:id/cancel', requireRole('Paciente'), async (req, res) => {
     const result = await calendarService.cancelCalendar(req.params.id, {
       pacienteId: req.session.userId,
     });
-    if (!result.ok) return res.status(result.status).json({ message: result.message });
+    if (!result.ok) {return res.status(result.status).json({ message: result.message });}
     res.json(result.body);
   } catch (err) {
     console.error(err);

@@ -17,12 +17,12 @@ function getAuditContext() {
 }
 
 function montarDetalhes(before, after) {
-  if (!before || !after) return null;
+  if (!before || !after) {return null;}
   const parts = [];
   for (const key of Object.keys(after)) {
-    if (RUIDO.has(key)) continue;
+    if (RUIDO.has(key)) {continue;}
     if (before[key] instanceof Date && after[key] instanceof Date) {
-      if (before[key].getTime() !== after[key].getTime()) parts.push(`${key}=${after[key].toISOString()}`);
+      if (before[key].getTime() !== after[key].getTime()) {parts.push(`${key}=${after[key].toISOString()}`);}
     } else if (String(before[key]) !== String(after[key])) {
       parts.push(`${key}=${after[key]}`);
     }
@@ -43,7 +43,7 @@ function createAuditExtension(baseClient) {
         }
 
         const modelClient = { User: 'user', Calendar: 'calendar' }[model];
-        if (!modelClient) return query(args);
+        if (!modelClient) {return query(args);}
 
         let before = null;
         if (operation === 'update' || operation === 'delete') {
@@ -56,7 +56,7 @@ function createAuditExtension(baseClient) {
 
         const result = await query(args);
 
-        if (ctx.skipAudit) return result;
+        if (ctx.skipAudit) {return result;}
 
         let action;
         let entityId;
@@ -67,7 +67,7 @@ function createAuditExtension(baseClient) {
           entityId = model === 'User' ? result.id : result.calendarID;
         } else if (operation === 'update') {
           details = montarDetalhes(before, result);
-          if (!details) return result;
+          if (!details) {return result;}
           action = `Modified ${model}`;
           entityId = model === 'User' ? result.id : result.calendarID;
         } else if (operation === 'delete') {

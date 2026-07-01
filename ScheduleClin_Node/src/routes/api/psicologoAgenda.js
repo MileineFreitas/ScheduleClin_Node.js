@@ -1,7 +1,6 @@
 const express = require('express');
 const { requireRole } = require('../../middleware/auth');
 const calendarService = require('../../services/calendarService');
-const { AppointmentStatus } = require('../../utils/appointmentStatus');
 const { getPrisma } = require('../../utils/prisma');
 
 const router = express.Router();
@@ -41,7 +40,7 @@ router.get('/pacientes', requireRole('Psicologo'), async (req, res) => {
 router.post('/', requireRole('Psicologo'), async (req, res) => {
   try {
     const result = await calendarService.createPsicologoAgenda(req.body, req.session.userId);
-    if (!result.ok) return res.status(result.status).json({ message: result.message });
+    if (!result.ok) {return res.status(result.status).json({ message: result.message });}
     res.status(result.status).location(`/api/PsicologoAgenda/${result.body.id}`).json(result.body);
   } catch (err) {
     console.error(err);
@@ -59,7 +58,7 @@ router.put('/:id', requireRole('Psicologo'), async (req, res) => {
         pacienteId: { not: null },
       },
     });
-    if (!exists) return res.status(404).json({ message: 'Consulta não encontrada.' });
+    if (!exists) {return res.status(404).json({ message: 'Consulta não encontrada.' });}
 
     const result = await calendarService.editCalendar(req.params.id, req.body, {
       blockPastDates: true,
@@ -67,7 +66,7 @@ router.put('/:id', requireRole('Psicologo'), async (req, res) => {
       allowFinalizar: false,
       finalizarMessage: 'Use a ação de finalizar consulta.',
     });
-    if (!result.ok) return res.status(result.status).json({ message: result.message });
+    if (!result.ok) {return res.status(result.status).json({ message: result.message });}
     res.sendStatus(result.status);
   } catch (err) {
     console.error(err);
@@ -81,7 +80,7 @@ router.patch('/:id/cancel', requireRole('Psicologo'), async (req, res) => {
       psicologoId: req.session.userId,
       pacienteId: { not: null },
     });
-    if (!result.ok) return res.status(result.status).json({ message: result.message });
+    if (!result.ok) {return res.status(result.status).json({ message: result.message });}
     res.json(result.body);
   } catch (err) {
     console.error(err);
@@ -92,7 +91,7 @@ router.patch('/:id/cancel', requireRole('Psicologo'), async (req, res) => {
 router.patch('/:id/finalizar', requireRole('Psicologo'), async (req, res) => {
   try {
     const result = await calendarService.finalizarCalendar(req.params.id, req.session.userId);
-    if (!result.ok) return res.status(result.status).json({ message: result.message });
+    if (!result.ok) {return res.status(result.status).json({ message: result.message });}
     res.json(result.body);
   } catch (err) {
     console.error(err);

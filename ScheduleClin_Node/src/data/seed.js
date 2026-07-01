@@ -17,7 +17,7 @@ async function seedProfiles(prisma) {
 
   for (const perfil of perfis) {
     const exists = await prisma.profile.findUnique({ where: { profileId: perfil.profileId } });
-    if (!exists) await prisma.profile.create({ data: perfil });
+    if (!exists) {await prisma.profile.create({ data: perfil });}
   }
 }
 
@@ -51,7 +51,7 @@ async function seedGestor(prisma) {
       const hasRole = await prisma.userRole.findUnique({
         where: { userId_roleId: { userId: gestor.id, roleId: gestorRole.id } },
       });
-      if (!hasRole) await prisma.userRole.create({ data: { userId: gestor.id, roleId: gestorRole.id } });
+      if (!hasRole) {await prisma.userRole.create({ data: { userId: gestor.id, roleId: gestorRole.id } });}
     }
     return;
   }
@@ -97,7 +97,7 @@ async function syncExistingUsers(prisma) {
       }
     } else if (user.perfilId && roles.length === 0 && user.perfil?.name) {
       const role = await prisma.role.findFirst({ where: { normalizedName: normalize(user.perfil.name) } });
-      if (role) await prisma.userRole.create({ data: { userId: user.id, roleId: role.id } });
+      if (role) {await prisma.userRole.create({ data: { userId: user.id, roleId: role.id } });}
     }
   }
 }

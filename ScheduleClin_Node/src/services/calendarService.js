@@ -21,7 +21,7 @@ async function psicologoTemConflito(psicologoId, scheduleDate, ignorarId = null)
     scheduleDate: new Date(scheduleDate),
     status: { notIn: [AppointmentStatus.Cancelada, AppointmentStatus.Finalizado] },
   };
-  if (ignorarId) where.calendarID = { not: ignorarId };
+  if (ignorarId) {where.calendarID = { not: ignorarId };}
   return (await prisma.calendar.count({ where })) > 0;
 }
 
@@ -53,8 +53,8 @@ async function mapCalendars(consultas) {
 async function getCalendars(inicio, fim) {
   const prisma = getPrisma();
   const where = {};
-  if (inicio) where.scheduleDate = { ...where.scheduleDate, gte: new Date(inicio) };
-  if (fim) where.scheduleDate = { ...where.scheduleDate, lte: new Date(fim) };
+  if (inicio) {where.scheduleDate = { ...where.scheduleDate, gte: new Date(inicio) };}
+  if (fim) {where.scheduleDate = { ...where.scheduleDate, lte: new Date(fim) };}
 
   const consultas = await prisma.calendar.findMany({
     where,
@@ -80,7 +80,7 @@ async function getPsicologosAtivos() {
 }
 
 async function createCalendar(dto, criadoPorId) {
-  if (!dto.title?.trim()) return { ok: false, status: 400, message: 'Título é obrigatório.' };
+  if (!dto.title?.trim()) {return { ok: false, status: 400, message: 'Título é obrigatório.' };}
   if (foraDoHorarioComercial(dto.scheduleDate)) {
     return { ok: false, status: 400, message: 'Só é possível agendar consultas entre 07:00 e 19:59.' };
   }
@@ -108,7 +108,7 @@ async function createCalendar(dto, criadoPorId) {
 async function editCalendar(id, dto, options = {}) {
   const prisma = getPrisma();
   const calendar = await prisma.calendar.findUnique({ where: { calendarID: id } });
-  if (!calendar) return { ok: false, status: 404, message: 'Consulta não encontrada.' };
+  if (!calendar) {return { ok: false, status: 404, message: 'Consulta não encontrada.' };}
 
   if (calendar.status === AppointmentStatus.Cancelada) {
     return { ok: false, status: 400, message: 'Não é possível editar uma consulta cancelada.' };
@@ -134,8 +134,8 @@ async function editCalendar(id, dto, options = {}) {
   }
 
   const data = { scheduleDate: novaData, psicologoId: novoPsicologoId };
-  if (dto.title?.trim()) data.title = dto.title;
-  if (dto.durationMinutes) data.durationMinutes = dto.durationMinutes;
+  if (dto.title?.trim()) {data.title = dto.title;}
+  if (dto.durationMinutes) {data.durationMinutes = dto.durationMinutes;}
 
   if (dto.status?.trim()) {
     if (dto.status === AppointmentStatus.Finalizado && !options.allowFinalizar) {
@@ -154,7 +154,7 @@ async function editCalendar(id, dto, options = {}) {
 async function cancelCalendar(id, filter = {}) {
   const prisma = getPrisma();
   const calendar = await prisma.calendar.findFirst({ where: { calendarID: id, ...filter } });
-  if (!calendar) return { ok: false, status: 404, message: 'Consulta não encontrada.' };
+  if (!calendar) {return { ok: false, status: 404, message: 'Consulta não encontrada.' };}
 
   if (calendar.status === AppointmentStatus.Cancelada) {
     return { ok: false, status: 400, message: 'Esta consulta já está cancelada.' };
@@ -175,7 +175,7 @@ async function finalizarCalendar(id, psicologoId) {
   const calendar = await prisma.calendar.findFirst({
     where: { calendarID: id, psicologoId, pacienteId: { not: null } },
   });
-  if (!calendar) return { ok: false, status: 404, message: 'Consulta não encontrada.' };
+  if (!calendar) {return { ok: false, status: 404, message: 'Consulta não encontrada.' };}
   if (calendar.status === AppointmentStatus.Cancelada) {
     return { ok: false, status: 400, message: 'Não é possível finalizar uma consulta cancelada.' };
   }
@@ -205,7 +205,7 @@ async function getMinhaAgendaPsicologo(psicologoId, { inicio, fim, desdeHoje }) 
   } else if (inicio) {
     where.scheduleDate = { gte: new Date(inicio) };
   }
-  if (fim) where.scheduleDate = { ...where.scheduleDate, lte: new Date(fim) };
+  if (fim) {where.scheduleDate = { ...where.scheduleDate, lte: new Date(fim) };}
 
   const consultas = await prisma.calendar.findMany({ where, orderBy: { scheduleDate: 'asc' } });
   const psicologo = await prisma.user.findUnique({ where: { id: psicologoId } });
@@ -233,7 +233,7 @@ async function getHistoricoPsicologo(psicologoId) {
 }
 
 async function createPsicologoAgenda(dto, psicologoId) {
-  if (!dto.pacienteId) return { ok: false, status: 400, message: 'Paciente é obrigatório.' };
+  if (!dto.pacienteId) {return { ok: false, status: 400, message: 'Paciente é obrigatório.' };}
   if (new Date(dto.scheduleDate) < startOfToday()) {
     return { ok: false, status: 400, message: 'Não é possível agendar consultas em datas anteriores.' };
   }
@@ -266,7 +266,7 @@ async function getHistoricoPaciente(pacienteId) {
 }
 
 async function createPacienteAgenda(dto, pacienteId, pacienteNome) {
-  if (!dto.psicologoId) return { ok: false, status: 400, message: 'Psicólogo é obrigatório.' };
+  if (!dto.psicologoId) {return { ok: false, status: 400, message: 'Psicólogo é obrigatório.' };}
   if (new Date(dto.scheduleDate) < startOfToday()) {
     return { ok: false, status: 400, message: 'Não é possível agendar em datas anteriores.' };
   }

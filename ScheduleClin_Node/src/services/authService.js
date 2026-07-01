@@ -110,14 +110,14 @@ async function logout(session, req) {
 async function changePassword(userId, currentPassword, newPassword) {
   const prisma = getPrisma();
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) return { ok: false, error: 'Usuário não encontrado.' };
+  if (!user) {return { ok: false, error: 'Usuário não encontrado.' };}
 
   if (!verifyPassword(user.passwordHash, currentPassword)) {
     return { ok: false, errors: ['Senha atual incorreta.'] };
   }
 
   const policyErrors = validatePasswordPolicy(newPassword);
-  if (policyErrors.length) return { ok: false, errors: policyErrors };
+  if (policyErrors.length) {return { ok: false, errors: policyErrors };}
 
   await prisma.user.update({
     where: { id: userId },

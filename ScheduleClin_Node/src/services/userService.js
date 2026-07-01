@@ -17,7 +17,7 @@ async function getUsers() {
 
   const roleByUser = {};
   for (const ur of userRoles) {
-    if (ur.role?.name) roleByUser[ur.userId] = ur.role.name;
+    if (ur.role?.name) {roleByUser[ur.userId] = ur.role.name;}
   }
 
   return users.map((u) => ({
@@ -117,7 +117,7 @@ async function createUser(dto) {
 async function updateUser(id, dto) {
   const prisma = getPrisma();
   const user = await prisma.user.findUnique({ where: { id } });
-  if (!user) return { ok: false, status: 404, message: 'Usuário não encontrado.' };
+  if (!user) {return { ok: false, status: 404, message: 'Usuário não encontrado.' };}
 
   const data = {};
 
@@ -130,7 +130,7 @@ async function updateUser(id, dto) {
 
     await prisma.userRole.deleteMany({ where: { userId: id } });
     const role = await prisma.role.findFirst({ where: { normalizedName: normalize(perfil.name) } });
-    if (role) await prisma.userRole.create({ data: { userId: id, roleId: role.id } });
+    if (role) {await prisma.userRole.create({ data: { userId: id, roleId: role.id } });}
   }
 
   if (dto.userName) {
@@ -169,7 +169,7 @@ async function updateUser(id, dto) {
 async function alterarStatus(id, isActive) {
   const prisma = getPrisma();
   const user = await prisma.user.findUnique({ where: { id } });
-  if (!user) return { ok: false, status: 400, message: 'Usuário não encontrado.' };
+  if (!user) {return { ok: false, status: 400, message: 'Usuário não encontrado.' };}
 
   await prisma.user.update({ where: { id }, data: { active: isActive } });
   return { ok: true, body: { id, active: isActive } };
@@ -178,7 +178,7 @@ async function alterarStatus(id, isActive) {
 async function resetPassword(id) {
   const prisma = getPrisma();
   const user = await prisma.user.findUnique({ where: { id } });
-  if (!user) return { ok: false, status: 404, message: 'Usuário não encontrado.' };
+  if (!user) {return { ok: false, status: 404, message: 'Usuário não encontrado.' };}
 
   const senhaProvisoria = generateProvisionalPassword();
   await prisma.user.update({

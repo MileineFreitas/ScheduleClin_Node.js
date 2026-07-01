@@ -17,7 +17,7 @@ async function main() {
   const app = createApp();
   app.listen(env.port, () => {
     console.log(`ScheduleClin Node rodando em http://localhost:${env.port}`);
-    if (env.isDev) console.log(`Swagger: http://localhost:${env.port}/api-docs`);
+    if (env.isDev) {console.log(`Swagger: http://localhost:${env.port}/api-docs`);}
   });
 }
 

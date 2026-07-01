@@ -11,7 +11,7 @@ function attachAuditContext(req, res, next) {
 }
 
 function requireAuth(req, res, next) {
-  if (req.session?.userId) return next();
+  if (req.session?.userId) {return next();}
 
   if (req.path.startsWith('/api') || req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/get-users')) {
     return res.status(401).json({ message: 'Não autenticado.' });
@@ -29,7 +29,7 @@ function requireRole(...roles) {
     }
 
     const userRoles = req.session.roles || [];
-    if (roles.some((r) => userRoles.includes(r))) return next();
+    if (roles.some((r) => userRoles.includes(r))) {return next();}
 
     if (req.path.startsWith('/api') || req.originalUrl.startsWith('/api')) {
       return res.status(403).json({ message: 'Acesso negado.' });
@@ -46,9 +46,9 @@ function redirectIfAuthenticated(req, res, next) {
 }
 
 function getHomeByRoles(roles) {
-  if (roles.includes('Gestor')) return '/admin/users';
-  if (roles.includes('Psicologo')) return '/psicologo/agenda';
-  if (roles.includes('Paciente')) return '/paciente/consultas';
+  if (roles.includes('Gestor')) {return '/admin/users';}
+  if (roles.includes('Psicologo')) {return '/psicologo/agenda';}
+  if (roles.includes('Paciente')) {return '/paciente/consultas';}
   return '/';
 }
 

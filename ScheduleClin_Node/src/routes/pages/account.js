@@ -9,10 +9,10 @@ const authService = require('../../services/authService');
 const router = express.Router();
 
 function isDbConnectionError(err) {
-  if (!err) return false;
-  if (err.code === 'P1001' || err.code === 'P1017') return true;
-  if (err.name === 'PrismaClientInitializationError') return true;
-  if (typeof err.message === 'string' && err.message.includes("Can't reach database server")) return true;
+  if (!err) {return false;}
+  if (err.code === 'P1001' || err.code === 'P1017') {return true;}
+  if (err.name === 'PrismaClientInitializationError') {return true;}
+  if (typeof err.message === 'string' && err.message.includes("Can't reach database server")) {return true;}
   return false;
 }
 
@@ -31,8 +31,8 @@ router.post('/login', redirectIfAuthenticated, async (req, res, next) => {
   const { email, password, returnUrl } = req.body;
   const errors = [];
 
-  if (!email?.trim()) errors.push('E-mail é obrigatório.');
-  if (!password) errors.push('Senha é obrigatória.');
+  if (!email?.trim()) {errors.push('E-mail é obrigatório.');}
+  if (!password) {errors.push('Senha é obrigatória.');}
 
   if (errors.length) {
     return res.render('account/login', { layout: false, returnUrl: returnUrl || '', errors });
@@ -90,9 +90,9 @@ router.post('/change-password', requireAuth, async (req, res, next) => {
   const { currentPassword, newPassword, confirmPassword } = req.body;
   const errors = [];
 
-  if (!currentPassword) errors.push('Senha atual é obrigatória.');
-  if (!newPassword) errors.push('Nova senha é obrigatória.');
-  if (newPassword !== confirmPassword) errors.push('Confirmação de senha não confere.');
+  if (!currentPassword) {errors.push('Senha atual é obrigatória.');}
+  if (!newPassword) {errors.push('Nova senha é obrigatória.');}
+  if (newPassword !== confirmPassword) {errors.push('Confirmação de senha não confere.');}
 
   if (errors.length) {
     return res.render('account/change-password', { layout: false, errors, msg: null });

@@ -11,7 +11,9 @@
     "prisma:pull": "prisma db pull",
     "prisma:studio": "prisma studio",
     "db:check": "node scripts/db-check.js",
-    "mysql:start": "scripts\\start-mysql.bat"
+    "mysql:start": "scripts\\start-mysql.bat",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "engines": {
     "node": ">=18"
@@ -30,6 +32,8 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.6.0",
     "prisma": "^6.19.0"
   }
 }
