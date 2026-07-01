@@ -1,50 +1,20 @@
-## Visual Studio
-.vs/
-*.user
-*.suo
-*.userosscache
-*.sln.docstates
-appsettings.json
+## Dependencies
+node_modules/
 
-## Build results
-[Dd]ebug/
-[Rr]elease/
-x64/
-x86/
-[Bb]in/
-[Oo]bj/
-[Ll]og/
-[Ll]ogs/
+## Environment
+.env
 
-## NuGet
-*.nupkg
-*.snupkg
-**/[Pp]ackages/*
-!**/[Pp]ackages/build/
-*.nuget.props
-*.nuget.targets
-project.lock.json
-project.fragment.lock.json
-artifacts/
-
-## ASP.NET Scaffolding
-ScaffoldingReadMe.txt
-
-## User-specific files
-*.rsuser
-*.userprefs
+## Logs
+*.log
+npm-debug.log*
 
 ## IDE
 .idea/
+.vscode/
 *.swp
 *~
 
 ## OS
 Thumbs.db
-ehthumbs.db
 Desktop.ini
 .DS_Store
-
-## Secrets
-appsettings.Development.json
-secrets.json

@@ -1,7 +1,8 @@
 # 🏥 Clínica de Psicologia — Sistema de Agendamento
 
 [![status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)](#)
-[![dotnet](https://img.shields.io/badge/.NET-8.0+-green)](https://dotnet.microsoft.com/)
+[![node](https://img.shields.io/badge/Node.js-18+-green)](https://nodejs.org/)
+[![express](https://img.shields.io/badge/Express-4.x-lightgrey)](https://expressjs.com/)
 [![SQLServer](https://img.shields.io/badge/SQL%20Server-database-blue)](https://www.microsoft.com/pt-br/sql-server)
 [![license](https://img.shields.io/badge/license-academic-lightgrey)](#)
 
@@ -23,9 +24,10 @@ O sistema tem como objetivo gerenciar o agendamento de consultas, oferecendo ace
 
 Desenvolver uma aplicação web utilizando:
 
-- **.NET 8.0** — backend com arquitetura MVC
+- **Node.js + Express** — backend com arquitetura MVC
 - **SQL Server** — banco de dados relacional
-- **ASP.NET Core MVC (Razor Views)** — frontend renderizado no servidor
+- **EJS** — templates renderizados no servidor
+- **Prisma** — ORM e acesso ao banco
 
 Aplicando boas práticas de **segurança da informação**, controle de acesso por perfil e proteção de dados sensíveis.
 
@@ -163,7 +165,7 @@ Aplicando boas práticas de **segurança da informação**, controle de acesso p
 
 ### 🔄 4. Manutenibilidade
 
-**RNF11 –** O código deve seguir o padrão MVC com separação clara entre Controllers, Models e Views.
+**RNF11 –** O código deve seguir o padrão MVC com separação clara entre routes, services e views.
 
 **RNF12 –** O projeto deve possuir documentação técnica (este README).
 
@@ -173,48 +175,48 @@ Aplicando boas práticas de **segurança da informação**, controle de acesso p
 
 | Tecnologia | Função | Justificativa |
 |---|---|---|
-| **.NET 8.0** | Runtime e framework do backend | Moderno, performático e com amplo suporte a recursos de segurança nativos |
-| **ASP.NET Core MVC** | Arquitetura da aplicação | Separação clara de responsabilidades entre Controllers, Models e Views |
-| **SQL Server** | Banco de dados relacional | Robusto, confiável e com integração nativa ao ecossistema .NET |
-| **Razor Views** | Template engine (frontend) | Renderização dinâmica de HTML no servidor integrada ao ciclo MVC do ASP.NET |
-| **ASP.NET Core Identity** | Autenticação e autorização | Gerenciamento seguro de usuários, senhas e perfis de acesso |
-| **Data Protection API** | Criptografia de dados sensíveis | Proteção nativa do .NET para dados em repouso e em trânsito |
+| **Node.js 18+** | Runtime do backend | Ecossistema maduro, assíncrono e amplamente adotado |
+| **Express** | Framework HTTP e roteamento | Leve, flexível e compatível com MVC |
+| **EJS** | Template engine (frontend) | Renderização dinâmica de HTML no servidor |
+| **Prisma** | ORM / acesso ao banco | Tipagem, migrations e integração com SQL Server |
+| **SQL Server** | Banco de dados relacional | Persistência com integridade referencial |
+| **express-session** | Sessão e autenticação | Controle de sessão com expiração automática (RNF04) |
+| **csrf-csrf** | Proteção CSRF | Validação de token em requisições que alteram estado (RNF06) |
 
 ---
 
 ## 🏗️ Arquitetura (Modelo C4)
 
 ### 🔹 Nível 1 – Contexto
-O usuário acessa o sistema via navegador. A aplicação processa as requisições via backend .NET e persiste os dados no **SQL Server**.
+O usuário acessa o sistema via navegador. A aplicação processa as requisições via backend Node.js e persiste os dados no **SQL Server**.
 
 ```
-[Usuário] → [Navegador] → [App .NET 8 MVC] → [SQL Server]
+[Usuário] → [Navegador] → [App Node.js + Express] → [SQL Server]
 ```
 
 ### 🔹 Nível 2 – Contêineres
 
 | Contêiner | Tecnologia | Responsabilidade |
 |---|---|---|
-| Frontend | Razor Views, HTML, CSS | Renderização da interface e interação com o usuário |
-| Backend | ASP.NET Core MVC (.NET 8) | Processamento das regras de negócio, autenticação e controle de acesso |
-| Database | SQL Server | Persistência e integridade dos dados |
+| Frontend | EJS, HTML, CSS, Bootstrap | Renderização da interface e interação com o usuário |
+| Backend | Node.js, Express | Regras de negócio, autenticação, APIs REST e controle de acesso |
+| Database | SQL Server + Prisma | Persistência e integridade dos dados |
 
 ### 🔹 Nível 3 – Componentes
 
-**Backend:**
-- `Controllers` — Recebem as requisições, aplicam regras de negócio e retornam respostas
-- `Models` — Representam as entidades do domínio e a comunicação com o banco de dados
-- `Views` — Templates Razor renderizados pelo servidor com dados injetados pelo Controller
+**Backend (`ScheduleClin_Node/src/`):**
+- `routes/pages/` — Rotas MVC (renderizam views EJS por perfil)
+- `routes/api/` — APIs REST (usuários, agenda, consultas)
+- `services/` — Regras de negócio
+- `middleware/` — Autenticação, CSRF e auditoria
+- `views/` — Templates EJS
 
 ### 🔹 Nível 4 – Código (Exemplo)
 
-```csharp
-[Authorize(Roles = "Secretaria,Admin")]
-public IActionResult Index()
-{
-    var consultas = _consultaService.ObterAgendaGeral();
-    return View(consultas);
-}
+```javascript
+router.get('/users', requireRole('Gestor'), (req, res) => {
+  res.render('admin/users', { layout: 'partials/admin-layout', ... });
+});
 ```
 
 ---
@@ -222,78 +224,73 @@ public IActionResult Index()
 ## 📁 Estrutura de Pastas
 
 ```
-ScheduleClin/                                                          ← Raiz do repositório
+ScheduleClin/                          ← Raiz do repositório
 │
-├── .gitignore                                                        ← Arquivos ignorados pelo Git (.vs, bin, obj, etc.)
-├── README.md                                                   ← Documentação do projeto (requisitos, arquitetura C4)
-├── ScheduleClin_V1.slnx                                      ← Arquivo de solução do Visual Studio
+├── package.json                       ← Scripts para rodar o Node.js na raiz
+├── README.md                          ← Documentação do projeto
 │
-├── .vs/                                                                  ← Cache interno do Visual Studio (ignorado pelo Git)
-│
-└── ScheduleClin_V1/                                            ← Projeto ASP.NET Core MVC (.NET 8)
-    │
-    ├── ScheduleClin.csproj                                    ← Definição do projeto (dependências, target framework)
-    ├── Program.cs                                                 ← Ponto de entrada — configuração da aplicação e pipeline HTTP
-    ├── appsettings.json                                         ← Configurações gerais (connection strings, logging)
-    ├── appsettings.Development.json                  ← Configurações do ambiente de desenvolvimento (não versionado)
-    │
-    ├── Properties/
-    │   └── launchSettings.json                                ← Perfis de execução local (portas, ambiente)
-    │
-    ├── Controllers/                                                 ← 🟢 Camada de controle (recebe requisições HTTP)
-    │   └── HomeController.cs                                 ← Controller padrão (Index, Privacy, Error)
-    │
-    ├── Models/                                                       ← 🟡 Camada de modelo (entidades do domínio)
-    │   └── ErrorViewModel.cs                                 ← Modelo da página de erro
-    │
-    ├── Views/                                                          ← 🟣 Camada de visualização (templates Razor)
-    │   ├── _ViewImports.cshtml                              ← Imports e Tag Helpers globais das views
-    │   ├── _ViewStart.cshtml                                   ← Define o layout padrão de todas as views
-    │   │
-    │   ├── Home/
-    │   │   ├── Index.cshtml                                      ← Página inicial
-    │   │   └── Privacy.cshtml                                   ← Página de privacidade
-    │   │
-    │   └── Shared/                                                   ← Views compartilhadas
-    │       ├── _Layout.cshtml                                    ← Layout principal (header, nav, footer)
-    │       ├── _Layout.cshtml.css                               ← CSS isolado do layout
-    │       ├── _ValidationScriptsPartial.cshtml           ← Scripts de validação client-side
-    │       └── Error.cshtml                                         ← Página de erro genérica
-    │
-    └── wwwroot/                                                     ← 🌐 Arquivos estáticos (servidos diretamente)
-        ├── favicon.ico
-        ├── css/
-        │   └── site.css                                                 ← Estilos customizados do site
-        ├── js/
-        │   └── site.js                                                    ← Scripts customizados do site
-        └── lib/                                                             ← Bibliotecas client-side de terceiros
-            ├── bootstrap/                                             ← Bootstrap 5 (CSS + JS, incl. variantes RTL)
-            ├── jquery/                                                   ← jQuery
-            ├── jquery-validation/                                  ← Validação de formulários
-            └── jquery-validation-unobtrusive/              ← Integração da validação com ASP.NET
+└── ScheduleClin_Node/                 ← Aplicação Node.js + Express
+    ├── package.json
+    ├── .env.example                   ← Variáveis de ambiente (copiar para .env)
+    ├── prisma/schema.prisma           ← Schema do banco (SQL Server)
+    ├── src/
+    │   ├── server.js                  ← Ponto de entrada
+    │   ├── app.js                     ← Configuração Express
+    │   ├── routes/pages/              ← Rotas MVC (Admin, Psicólogo, Paciente, Account)
+    │   ├── routes/api/                ← APIs REST
+    │   ├── services/                  ← Regras de negócio
+    │   ├── middleware/                ← Auth, CSRF, auditoria
+    │   └── data/seed.js               ← Seed de perfis, papéis e gestor inicial
+    ├── views/                         ← Templates EJS
+    └── public/                        ← CSS, JS e bibliotecas estáticas
 ```
+
+---
+
+## 🚀 Como executar (Node.js)
+
+### Pré-requisitos
+
+- Node.js 18+
+- SQL Server com o banco `ScheduleClin`
+
+### Configuração
+
+```bash
+# Na raiz do repositório
+npm install
+
+cd ScheduleClin_Node
+copy .env.example .env   # Windows — ajuste DATABASE_URL e SESSION_SECRET
+npm run prisma:generate
+```
+
+### Executar
+
+```bash
+# Na raiz
+npm run dev
+
+# Ou dentro de ScheduleClin_Node
+npm run dev
+```
+
+Acesse `http://localhost:3000`. Em desenvolvimento, a documentação Swagger fica em `/api-docs`.
+
+**Usuário gestor inicial (seed):** `gestor@scheduleclin.local` / `Gestor@123` (troca de senha obrigatória no primeiro acesso).
+
+---
 
 ### 📌 O que cada camada faz?
 
-#### 🟢 Controllers (`/Controllers`)
-Recebem as requisições HTTP, aplicam as regras de negócio, validam permissões de acesso por perfil e retornam a resposta adequada — renderizando uma View ou redirecionando o usuário.
+#### 🟢 Routes + Services (`ScheduleClin_Node/src/`)
+Recebem requisições HTTP, aplicam regras de negócio, validam permissões por perfil e retornam views ou JSON.
 
----
+#### 🟣 Views (`ScheduleClin_Node/views/`)
+Templates **EJS** com HTML dinâmico — painéis de Gestor, Psicólogo e Paciente.
 
-#### 🟡 Models (`/Models`)
-Representam as entidades do domínio (Usuário, Consulta, Paciente, Psicólogo etc.) e encapsulam a comunicação com o banco de dados SQL Server.
-
----
-
-#### 🟣 Views (`/Views`)
-Templates **Razor (.cshtml)** que mesclam HTML com dados dinâmicos injetados pelo servidor. São renderizados e enviados prontos ao navegador.
-
----
-
-#### 🌐 wwwroot (`/wwwroot`)
-Arquivos **estáticos** (CSS, JS do cliente, imagens) servidos diretamente pelo servidor sem passar pelos Controllers.
-
----
+#### 🌐 Public (`ScheduleClin_Node/public/`)
+Arquivos estáticos (CSS, JS, Bootstrap, jQuery) servidos diretamente pelo Express.
 
 ## Banco de Dados
 
@@ -329,7 +326,7 @@ psicologo
 
 ## 📌 Status do Projeto
 
-**Finalizado**
+**Em desenvolvimento** — stack Node.js + Express + EJS + Prisma.
 
 ---
 
