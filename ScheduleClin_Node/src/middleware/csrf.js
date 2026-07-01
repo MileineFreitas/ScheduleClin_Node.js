@@ -2,7 +2,7 @@ const { doubleCsrf } = require('csrf-csrf');
 const env = require('../config/env');
 
 const {
-  generateCsrfToken,
+  generateToken,
   doubleCsrfProtection,
 } = doubleCsrf({
   getSecret: () => env.sessionSecret,
@@ -11,21 +11,37 @@ const {
   cookieOptions: {
     httpOnly: true,
     secure: env.cookieSecure,
-    sameSite: 'strict',
+    sameSite: 'lax',
   },
   size: 64,
   ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
-  getCsrfTokenFromRequest: (req) => req.headers['x-csrf-token'] || req.body?._csrf,
+  getTokenFromRequest: (req) => req.headers['x-csrf-token'] || req.body?._csrf,
 });
 
 function csrfTokenMiddleware(req, res, next) {
-  res.locals.csrfToken = generateCsrfToken(req, res);
+  if (req.session) {
+    req.session._csrfInit = true;
+  }
+  try {
+    // validateOnReuse=false evita loop quando o cookie _csrf está desatualizado
+    res.locals.csrfToken = generateToken(req, res, false, false);
+  } catch (err) {
+    if (err.code === 'EBADCSRFTOKEN') {
+      res.clearCookie('_csrf');
+      res.locals.csrfToken = generateToken(req, res, true, false);
+      return next();
+    }
+    return next(err);
+  }
   next();
 }
 
 function csrfProtection(req, res, next) {
-  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
   return doubleCsrfProtection(req, res, next);
 }
 
-module.exports = { csrfTokenMiddleware, csrfProtection, generateCsrfToken };
+module.exports = {
+  csrfTokenMiddleware,
+  csrfProtection,
+  generateCsrfToken: generateToken,
+};

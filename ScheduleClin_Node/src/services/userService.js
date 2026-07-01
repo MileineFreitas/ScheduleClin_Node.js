@@ -8,6 +8,7 @@ const {
   newSecurityStamp,
   newConcurrencyStamp,
 } = require('../utils/password');
+const { parseDataNascimento } = require('../utils/dates');
 
 async function getUsers() {
   const prisma = getPrisma();
@@ -67,6 +68,11 @@ async function createUser(dto) {
     return { ok: false, status: 400, message: 'Já existe um usuário cadastrado com esse CRP.' };
   }
 
+  const dataNascimento = parseDataNascimento(dto.dataNascimento);
+  if (!dataNascimento) {
+    return { ok: false, status: 400, message: 'Data de nascimento inválida. Use o formato dd/mm/aaaa.' };
+  }
+
   const senhaProvisoria = generateProvisionalPassword();
   const userId = randomUUID();
   const role = await prisma.role.findFirst({ where: { normalizedName: normalize(perfil.name) } });
@@ -85,7 +91,7 @@ async function createUser(dto) {
       cpf: dto.cpf,
       crp: perfil.name === Perfis.Psicologo ? crpTrim : null,
       perfilId: dto.perfilId,
-      dataNascimento: new Date(dto.dataNascimento),
+      dataNascimento,
       mustChangePassword: true,
       active: true,
     },
@@ -141,7 +147,13 @@ async function updateUser(id, dto) {
     }
     data.cpf = dto.cpf;
   }
-  if (dto.dataNascimento) data.dataNascimento = new Date(dto.dataNascimento);
+  if (dto.dataNascimento !== undefined) {
+    const parsed = parseDataNascimento(dto.dataNascimento);
+    if (!parsed) {
+      return { ok: false, status: 400, message: 'Data de nascimento inválida. Use o formato dd/mm/aaaa.' };
+    }
+    data.dataNascimento = parsed;
+  }
   if (dto.crp !== undefined) {
     const crp = dto.crp?.trim() || null;
     if (crp && await prisma.user.findFirst({ where: { crp, NOT: { id } } })) {

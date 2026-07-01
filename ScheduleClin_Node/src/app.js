@@ -1,6 +1,7 @@
 const path = require('path');
 const express = require('express');
 const session = require('express-session');
+const cookieParser = require('cookie-parser');
 const expressLayouts = require('express-ejs-layouts');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
@@ -32,6 +33,7 @@ function createApp() {
 
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+  app.use(cookieParser());
   app.use(express.static(path.join(__dirname, '..', 'public')));
 
   app.use(session({
@@ -48,14 +50,16 @@ function createApp() {
   }));
 
   app.use(attachAuditContext);
-  app.use(csrfTokenMiddleware);
   app.use(csrfProtection);
+  app.use(csrfTokenMiddleware);
 
   app.use((req, res, next) => {
     res.locals.userName = req.session?.userName || '';
     res.locals.csrfToken = res.locals.csrfToken || '';
     next();
   });
+
+  app.get('/login', (req, res) => res.redirect('/account/login'));
 
   if (env.isDev) {
     const swaggerSpec = swaggerJsdoc({
@@ -93,11 +97,25 @@ function createApp() {
   app.use('/api/PacienteAgenda', pacienteAgendaApi);
 
   app.use((err, req, res, next) => {
+    const dbUnreachable = err?.code === 'P1001'
+      || err?.code === 'P1017'
+      || err?.name === 'PrismaClientInitializationError'
+      || (typeof err?.message === 'string' && err.message.includes("Can't reach database server"));
+
+    if (dbUnreachable && !req.path.startsWith('/api')) {
+      return res.status(503).send(
+        'Banco de dados indisponível. Verifique se o MySQL/MariaDB está rodando (XAMPP) e o DATABASE_URL no .env.',
+      );
+    }
+
     if (err.code === 'EBADCSRFTOKEN') {
       if (req.path.startsWith('/api') || req.originalUrl.startsWith('/api')) {
         return res.status(403).json({ message: 'Token CSRF inválido.' });
       }
-      return res.status(403).send('Token CSRF inválido.');
+      res.clearCookie('_csrf');
+      return res.status(403).send(
+        'Sessão expirada ou token inválido. Atualize a página (F5) e tente novamente.',
+      );
     }
     console.error(err);
     res.status(500).send('Erro interno.');

@@ -232,7 +232,7 @@ ScheduleClin/                          ← Raiz do repositório
 └── ScheduleClin_Node/                 ← Aplicação Node.js + Express
     ├── package.json
     ├── .env.example                   ← Variáveis de ambiente (copiar para .env)
-    ├── prisma/schema.prisma           ← Schema do banco (SQL Server)
+    ├── prisma/schema.prisma           ← Schema do banco (MariaDB/MySQL)
     ├── src/
     │   ├── server.js                  ← Ponto de entrada
     │   ├── app.js                     ← Configuração Express
@@ -252,7 +252,35 @@ ScheduleClin/                          ← Raiz do repositório
 ### Pré-requisitos
 
 - Node.js 18+
-- SQL Server com o banco `ScheduleClin`
+- **XAMPP** (MariaDB/MySQL) ou MySQL local na porta **3306**
+- Banco `scheduleclin` criado no servidor
+
+### Banco com XAMPP (MariaDB)
+
+1. Abra o painel do XAMPP:
+   ```
+   C:\Users\Acer\Documents\GitHub\xampp\xampp\xampp-control.exe
+   ```
+2. Clique em **Start** no módulo **MySQL** (MariaDB).
+3. Abra **phpMyAdmin**: http://localhost/phpmyadmin
+4. Crie um banco chamado **`scheduleclin`** (collation `utf8mb4_unicode_ci`).
+5. Configure o `.env` (senha vazia é o padrão do XAMPP):
+
+```env
+DATABASE_URL="mysql://root:@localhost:3306/scheduleclin"
+```
+
+Se você definiu senha para o `root`:
+
+```env
+DATABASE_URL="mysql://root:SUA_SENHA@localhost:3306/scheduleclin"
+```
+
+> **Importante:** no seu PC o serviço **MySQL80** também usa a porta 3306. Antes de usar o XAMPP, pare o MySQL80:
+> ```powershell
+> Stop-Service MySQL80
+> ```
+> Depois inicie o MySQL pelo XAMPP Control Panel. Para voltar ao MySQL80: `Start-Service MySQL80`
 
 ### Configuração
 
@@ -263,6 +291,8 @@ npm install
 cd ScheduleClin_Node
 copy .env.example .env   # Windows — ajuste DATABASE_URL e SESSION_SECRET
 npm run prisma:generate
+npm run db:check         # testa conexão com o banco
+npm run prisma:push      # cria/atualiza tabelas no banco vazio
 ```
 
 ### Executar

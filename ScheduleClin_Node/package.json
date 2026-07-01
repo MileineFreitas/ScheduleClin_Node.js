@@ -7,14 +7,18 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
     "prisma:pull": "prisma db pull",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "db:check": "node scripts/db-check.js",
+    "mysql:start": "scripts\\start-mysql.bat"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
+    "cookie-parser": "^1.4.7",
     "csrf-csrf": "^3.1.0",
     "dotenv": "^16.6.1",
     "ejs": "^3.1.10",
