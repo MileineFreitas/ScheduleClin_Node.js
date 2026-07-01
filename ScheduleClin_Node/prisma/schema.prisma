@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String    @id @default(uuid()) @db.UniqueIdentifier
+  userName             String?   @map("UserName") @db.NVarChar(256)
+  normalizedUserName   String?   @unique @map("NormalizedUserName") @db.NVarChar(256)
+  email                String?   @map("Email") @db.NVarChar(256)
+  normalizedEmail      String?   @map("NormalizedEmail") @db.NVarChar(256)
+  emailConfirmed       Boolean   @default(false) @map("EmailConfirmed")
+  passwordHash         String?   @map("PasswordHash") @db.NVarChar(Max)
+  securityStamp        String?   @map("SecurityStamp") @db.NVarChar(Max)
+  concurrencyStamp     String?   @map("ConcurrencyStamp") @db.NVarChar(Max)
+  phoneNumber          String?   @map("PhoneNumber") @db.NVarChar(Max)
+  phoneNumberConfirmed Boolean   @default(false) @map("PhoneNumberConfirmed")
+  twoFactorEnabled     Boolean   @default(false) @map("TwoFactorEnabled")
+  lockoutEnd           DateTime? @map("LockoutEnd") @db.DateTimeOffset
+  lockoutEnabled       Boolean   @default(true) @map("LockoutEnabled")
+  accessFailedCount    Int       @default(0) @map("AccessFailedCount")
+  cpf                  String?   @map("CPF") @db.NVarChar(14)
+  perfilId             String?   @map("PerfilId") @db.UniqueIdentifier
+  crp                  String?   @map("Crp") @db.NVarChar(20)
+  dataNascimento       DateTime  @map("DataNascimento")
+  createAt             DateTime  @default(now()) @map("CreateAt") @db.DateTimeOffset
+  mustChangePassword   Boolean   @default(true) @map("MustChangePassword")
+  active               Boolean   @default(true) @map("Active")
+
+  perfil    Profile?       @relation(fields: [perfilId], references: [profileId], onDelete: NoAction, onUpdate: NoAction)
+  userRoles UserRole[]
+
+  @@map("AspNetUsers")
+}
+
+model Role {
+  id               String     @id @default(uuid()) @db.UniqueIdentifier
+  name             String?    @map("Name") @db.NVarChar(256)
+  normalizedName   String?    @unique @map("NormalizedName") @db.NVarChar(256)
+  concurrencyStamp String?    @map("ConcurrencyStamp") @db.NVarChar(Max)
+  userRoles        UserRole[]
+
+  @@map("AspNetRoles")
+}
+
+model UserRole {
+  userId String @map("UserId") @db.UniqueIdentifier
+  roleId String @map("RoleId") @db.UniqueIdentifier
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("AspNetUserRoles")
+}
+
+model Profile {
+  profileId   String  @id @default(uuid()) @map("ProfileId") @db.UniqueIdentifier
+  name        String  @db.NVarChar(Max)
+  description String? @db.NVarChar(Max)
+  crp         Int?    @map("CRP")
+
+  users User[]
+
+  @@map("Profiles")
+}
+
+model Calendar {
+  calendarID      String   @id @default(uuid()) @map("CalendarID") @db.UniqueIdentifier
+  title           String   @map("Title") @db.NVarChar(Max)
+  createAt        DateTime @default(now()) @map("CreateAt")
+  scheduleDate    DateTime @map("ScheduleDate")
+  durationMinutes Int      @default(60) @map("DurationMinutes")
+  pacienteId      String?  @map("PacienteId") @db.UniqueIdentifier
+  psicologoId     String?  @map("PsicologoId") @db.UniqueIdentifier
+  status          String   @default("Confirmada") @map("Status") @db.NVarChar(30)
+  criadoPorId     String?  @map("CriadoPorId") @db.UniqueIdentifier
+
+  @@map("Calendars")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.UniqueIdentifier
+  dateUtc   DateTime @default(now()) @map("DateUtc")
+  userId    String?  @map("UserId") @db.UniqueIdentifier
+  userName  String?  @map("UserName") @db.NVarChar(256)
+  action    String   @map("Action") @db.NVarChar(80)
+  entity    String?  @map("Entity") @db.NVarChar(80)
+  entityId  String?  @map("EntityId") @db.NVarChar(80)
+  details   String?  @map("Details") @db.NVarChar(1000)
+  ipAddress String?  @map("IpAddress") @db.NVarChar(64)
+
+  @@map("AuditLogs")
+}
