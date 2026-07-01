@@ -1,0 +1,89 @@
+<div style="margin-bottom:24px">
+    <div class="adm-page-title">Histórico</div>
+    <div class="adm-page-sub" id="ph-sub">Carregando...</div>
+</div>
+
+<div class="adm-search-wrap">
+    <div class="adm-search">
+        <i class="ti ti-search"></i>
+        <input type="text" id="ph-busca" placeholder="Buscar por psicólogo ou título..." oninput="filtrar()" />
+    </div>
+    <select class="adm-input" style="width:200px" id="ph-status" onchange="filtrar()">
+        <option value="">Todos os status</option>
+        <option>Finalizado</option>
+        <option>Cancelada</option>
+        <option>Confirmada</option>
+        <option>Pendente</option>
+        <option>Reagendamento Solicitado</option>
+    </select>
+</div>
+
+<div class="adm-card">
+    <table class="adm-table">
+        <thead>
+            <tr>
+                <th>Psicólogo(a)</th>
+                <th>Data &amp; Hora</th>
+                <th>Duração</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="ph-tbody">
+            <tr><td colspan="4" style="text-align:center;padding:32px;color:#9ca3af">Carregando...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    const initials = n => (n||'??').split(/\s+/).slice(0,2).map(p=>p[0]).join('').toUpperCase();
+
+    let todas = [];
+
+    async function carregar() {
+        try {
+            const res = await fetch('/api/PacienteAgenda/historico', { credentials: 'include' });
+            todas = res.ok ? await res.json() : [];
+        } catch { todas = []; }
+        filtrar();
+    }
+
+    function filtrar() {
+        const busca  = document.getElementById('ph-busca').value.toLowerCase();
+        const status = document.getElementById('ph-status').value;
+
+        const lista = todas
+            .filter(c => !busca || (c.psicologoNome||'').toLowerCase().includes(busca) || (c.title||'').toLowerCase().includes(busca))
+            .filter(c => !status || c.status === status);
+
+        renderizar(lista);
+    }
+
+    function renderizar(lista) {
+        document.getElementById('ph-sub').textContent =
+            `${lista.length} consulta${lista.length !== 1 ? 's' : ''} no histórico`;
+
+        if (!lista.length) {
+            document.getElementById('ph-tbody').innerHTML =
+                `<tr><td colspan="4" style="text-align:center;padding:32px;color:#9ca3af">Nenhuma consulta no histórico.</td></tr>`;
+            return;
+        }
+
+        document.getElementById('ph-tbody').innerHTML = lista.map(c => {
+            const dt = new Date(c.scheduleDate);
+            const nome = c.psicologoNome || 'Psicólogo(a)';
+            return `<tr>
+                <td>
+                    <div class="adm-user-cell">
+                        <div class="av" style="background:${avatarColor(nome)}">${initials(nome)}</div>
+                        <div class="info"><strong>${nome}</strong></div>
+                    </div>
+                </td>
+                <td>${dt.toLocaleDateString('pt-BR')} <span style="color:#9ca3af">${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span></td>
+                <td>${c.durationMinutes} min</td>
+                <td><span class="adm-badge ${STATUS_BADGE[c.status]||'adm-badge-gray'}">${c.status}</span></td>
+            </tr>`;
+        }).join('');
+    }
+
+    carregar();
+</script>

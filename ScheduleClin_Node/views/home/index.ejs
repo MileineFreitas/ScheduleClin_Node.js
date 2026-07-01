@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %> — ScheduleClin</title>
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+<body class="bg-light">
+    <div class="container py-4">
+        <h1 class="h3">ScheduleClin</h1>
+
+        <% if (typeof msg !== 'undefined' && msg) { %>
+        <div class="alert alert-success"><%= msg %></div>
+        <% } %>
+
+        <% if (userName) { %>
+        <p>Bem-vindo, <strong><%= userName %></strong>.</p>
+        <% if (typeof roles !== 'undefined' && roles && roles.length) { %>
+        <p>
+            Perfis:
+            <strong><%= roles.join(', ') %></strong>
+        </p>
+        <% } %>
+        <div class="d-flex gap-2 mt-3">
+            <a class="btn btn-outline-secondary" href="/account/change-password">Trocar senha</a>
+            <form action="/account/logout" method="post">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                <button type="submit" class="btn btn-outline-danger">Sair</button>
+            </form>
+        </div>
+        <% } else { %>
+        <p class="text-muted mt-3"><a href="/account/login">Entrar</a> para acessar o sistema.</p>
+        <% } %>
+    </div>
+</body>
+</html>

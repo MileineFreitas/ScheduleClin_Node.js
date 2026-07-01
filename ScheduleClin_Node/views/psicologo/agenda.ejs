@@ -1,0 +1,574 @@
+<style>
+    .cal-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
+    .cal-nav { display:flex; align-items:center; gap:10px; }
+    .cal-nav-label { font-size:14px; font-weight:600; color:#111827; min-width:230px; text-align:center; }
+
+    .cal-grid { display:grid; grid-template-columns: 56px repeat(6, 1fr); }
+    .cal-head-cell {
+        text-align:center; padding:10px 4px; font-size:12px; color:#6b7280;
+        border-bottom:1px solid #e8eaf0; background:#fafbfc;
+    }
+    .cal-head-cell.today { color:#fff; }
+    .cal-head-day { font-weight:600; }
+    .cal-head-num {
+        display:inline-flex; align-items:center; justify-content:center;
+        width:24px; height:24px; border-radius:50%; margin-top:2px; font-weight:600; color:#111827;
+    }
+    .cal-head-cell.today .cal-head-num { background:#2563eb; color:#fff; }
+
+    .cal-hour-col { border-right:1px solid #e8eaf0; }
+    .cal-hour-label {
+        height:56px; font-size:11px; color:#9ca3af; text-align:right; padding-right:6px;
+        border-bottom:1px solid #f3f4f6; position:relative; top:-7px;
+    }
+
+    .cal-day-col { position:relative; border-right:1px solid #f3f4f6; background-image: repeating-linear-gradient(#f3f4f6 0 1px, transparent 1px 56px); }
+
+    .cal-chip {
+        position:absolute; left:4px; right:4px; border-radius:6px;
+        border-left:3px solid #2563eb; background:#eff6ff; color:#1d4ed8;
+        font-size:12px; padding:4px 6px; overflow:hidden; cursor:pointer;
+        box-shadow:0 1px 2px rgba(0,0,0,.06);
+    }
+    .cal-chip.cal-chip-block { border-left-color:#9ca3af; background:#f3f4f6; color:#6b7280; }
+    .cal-chip.cal-chip-cancel { border-left-color:#ef4444; background:#fef2f2; color:#b91c1c; text-decoration:line-through; }
+    .cal-chip.cal-chip-final { border-left-color:#0f766e; background:#ecfdf5; color:#0f766e; }
+    .cal-chip:hover { filter:brightness(.97); }
+</style>
+
+<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
+    <div>
+        <div class="adm-page-title">Minha Agenda</div>
+        <div class="adm-page-sub" id="cal-sub">Seus agendamentos da semana</div>
+    </div>
+    <button class="adm-btn adm-btn-primary" onclick="abrirModalNovaConsulta()">
+        <i class="ti ti-plus"></i> Nova consulta
+    </button>
+</div>
+
+<div class="cal-toolbar">
+    <div class="cal-nav">
+        <button class="adm-icon-btn" id="btn-semana-anterior" onclick="mudarSemana(-1)"><i class="ti ti-chevron-left"></i></button>
+        <button class="adm-icon-btn" onclick="mudarSemana(1)"><i class="ti ti-chevron-right"></i></button>
+        <span class="cal-nav-label" id="cal-label"></span>
+    </div>
+    <button class="adm-btn" onclick="irParaHoje()">Hoje</button>
+</div>
+
+<div class="adm-card" style="padding:0">
+    <div class="cal-grid" id="cal-head"></div>
+    <div class="cal-grid" id="cal-body" style="height:728px"></div>
+</div>
+
+<!-- ── MODAL NOVA CONSULTA ── -->
+<div class="adm-modal-bg" id="modal-nova-consulta">
+    <div class="adm-modal">
+        <div class="adm-modal-head">
+            <h3>Nova Consulta</h3>
+            <button class="adm-modal-close" onclick="closeModal('modal-nova-consulta')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+
+        <div class="adm-field">
+            <label>Paciente</label>
+            <select class="adm-input" id="nc-paciente">
+                <option value="">Selecione...</option>
+            </select>
+        </div>
+        <div class="adm-field">
+            <label>Título (opcional)</label>
+            <input class="adm-input" id="nc-titulo" placeholder="Ex.: Consulta de retorno" />
+        </div>
+        <div class="adm-field">
+            <label>Data</label>
+            <input class="adm-input" id="nc-data" type="date" />
+        </div>
+        <div class="adm-field">
+            <label>Hora</label>
+            <input class="adm-input" id="nc-hora" type="time" />
+        </div>
+        <div class="adm-field">
+            <label>Duração (min)</label>
+            <input class="adm-input" id="nc-duracao" type="number" min="15" step="15" value="60" />
+        </div>
+
+        <div id="nc-erro" style="font-size:13px;color:#b91c1c;margin-bottom:12px;display:none"></div>
+
+        <div class="adm-modal-footer">
+            <button class="adm-btn" onclick="closeModal('modal-nova-consulta')">Cancelar</button>
+            <button class="adm-btn adm-btn-primary" id="btn-criar-consulta" onclick="criarConsulta()">
+                Agendar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ── MODAL DETALHES DA CONSULTA ── -->
+<div class="adm-modal-bg" id="modal-detalhes-consulta">
+    <div class="adm-modal">
+        <div class="adm-modal-head">
+            <h3>Detalhes da Consulta</h3>
+            <button class="adm-modal-close" onclick="closeModal('modal-detalhes-consulta')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+
+        <div id="dc-visualizacao">
+            <div style="border-left:3px solid #2563eb;background:#eff6ff;padding:10px 14px;border-radius:8px;margin-bottom:16px">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.4px;color:#2563eb;text-transform:uppercase">Paciente</div>
+                <div id="dc-paciente" style="font-size:16px;font-weight:600;color:#111827"></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;color:#374151;font-size:14px">
+                <i class="ti ti-clipboard-text"></i> <span id="dc-titulo"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;color:#374151;font-size:14px">
+                <i class="ti ti-calendar"></i> <span id="dc-data"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;color:#374151;font-size:14px">
+                <i class="ti ti-clock"></i> <span id="dc-hora"></span>
+            </div>
+            <div style="margin-bottom:20px"><span class="adm-badge" id="dc-status"></span></div>
+
+            <div class="adm-modal-footer" id="dc-acoes" style="flex-direction:column">
+                <button class="adm-btn" style="justify-content:center" onclick="mostrarEdicaoConsulta('editar')">
+                    <i class="ti ti-pencil"></i> Editar consulta
+                </button>
+                <button class="adm-btn" style="justify-content:center" onclick="mostrarEdicaoConsulta('reagendar')">
+                    <i class="ti ti-clock-hour-4"></i> Reagendar
+                </button>
+                <button class="adm-btn" style="justify-content:center;background:#0f766e;color:#fff;border-color:#0f766e"
+                        onclick="finalizarConsulta()">
+                    <i class="ti ti-check"></i> Finalizar consulta
+                </button>
+                <button class="adm-btn" style="justify-content:center;background:#ef4444;color:#fff;border-color:#ef4444"
+                        onclick="cancelarConsulta()">
+                    <i class="ti ti-x"></i> Cancelar consulta
+                </button>
+            </div>
+        </div>
+
+        <div id="dc-edicao" style="display:none">
+            <input type="hidden" id="ed-id" />
+
+            <div class="adm-field" id="ed-titulo-group">
+                <label>Título</label>
+                <input class="adm-input" id="ed-titulo" />
+            </div>
+            <div class="adm-field" id="ed-status-group">
+                <label>Status</label>
+                <select class="adm-input" id="ed-status">
+                    <option value="Pendente">Pendente</option>
+                    <option value="Confirmada">Confirmada</option>
+                    <option value="Reagendamento Solicitado">Reagendamento Solicitado</option>
+                </select>
+            </div>
+            <div class="adm-field">
+                <label>Data</label>
+                <input class="adm-input" id="ed-data" type="date" />
+            </div>
+            <div class="adm-field">
+                <label>Hora</label>
+                <input class="adm-input" id="ed-hora" type="time" />
+            </div>
+            <div class="adm-field">
+                <label>Duração (min)</label>
+                <input class="adm-input" id="ed-duracao" type="number" min="15" step="15" />
+            </div>
+
+            <div id="ed-erro" style="font-size:13px;color:#b91c1c;margin-bottom:12px;display:none"></div>
+
+            <div class="adm-modal-footer">
+                <button class="adm-btn" onclick="esconderEdicaoConsulta()">Voltar</button>
+                <button class="adm-btn adm-btn-primary" onclick="salvarEdicaoConsulta()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const STATUS_BADGE = {
+    'Pendente':                  'adm-badge-orange',
+    'Confirmada':                'adm-badge-green',
+    'Reagendamento Solicitado':  'adm-badge-blue',
+    'Cancelada':                 'adm-badge-red',
+    'Finalizado':                'adm-badge-teal',
+};
+
+let pacientesCadastrados = [];
+let consultaSelecionada = null;
+
+const pad2 = n => String(n).padStart(2, '0');
+const dataLocalStr = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const horaLocalStr = d => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+
+window.onConsultaAtualizada = window.onConsultaAtualizada || (() => {});
+
+async function carregarPacientes() {
+    try {
+        const res = await fetch('/api/PsicologoAgenda/pacientes', { credentials: 'include' });
+        pacientesCadastrados = res.ok ? await res.json() : [];
+    } catch {
+        pacientesCadastrados = [];
+    }
+
+    document.getElementById('nc-paciente').innerHTML =
+        '<option value="">Selecione...</option>' +
+        pacientesCadastrados.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+}
+
+async function abrirModalNovaConsulta() {
+    document.getElementById('nc-paciente').value = '';
+    document.getElementById('nc-titulo').value   = '';
+    document.getElementById('nc-data').value     = dataLocalStr(new Date());
+    document.getElementById('nc-hora').value     = '';
+    document.getElementById('nc-duracao').value  = 60;
+    document.getElementById('nc-erro').style.display = 'none';
+    openModal('modal-nova-consulta');
+
+    if (!pacientesCadastrados.length)
+        await carregarPacientes();
+}
+
+async function criarConsulta() {
+    const pacienteId = document.getElementById('nc-paciente').value;
+    const titulo     = document.getElementById('nc-titulo').value.trim();
+    const data       = document.getElementById('nc-data').value;
+    const hora       = document.getElementById('nc-hora').value;
+    const duracao    = parseInt(document.getElementById('nc-duracao').value, 10) || 60;
+    const erroEl     = document.getElementById('nc-erro');
+
+    if (!pacienteId || !data || !hora) {
+        erroEl.textContent = 'Paciente, data e hora são obrigatórios.';
+        erroEl.style.display = 'block';
+        return;
+    }
+    if (data < dataLocalStr(new Date())) {
+        erroEl.textContent = 'Não é possível agendar consultas em datas anteriores.';
+        erroEl.style.display = 'block';
+        return;
+    }
+    if (hora < '07:00' || hora >= '20:00') {
+        erroEl.textContent = 'Só é possível agendar consultas entre 07:00 e 19:59.';
+        erroEl.style.display = 'block';
+        return;
+    }
+
+    const pacienteNome = pacientesCadastrados.find(p => p.id === pacienteId)?.nome || 'Paciente';
+    const scheduleDate = `${data}T${hora}:00`;
+
+    const body = {
+        title:           titulo || `Consulta — ${pacienteNome}`,
+        scheduleDate:    scheduleDate,
+        durationMinutes: duracao,
+        pacienteId:      pacienteId,
+    };
+
+    const btn = document.getElementById('btn-criar-consulta');
+    btn.disabled = true;
+    btn.textContent = 'Agendando...';
+
+    try {
+        const res = await fetch('/api/PsicologoAgenda', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(body)
+        });
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            erroEl.textContent = data.message || 'Erro ao agendar consulta.';
+            erroEl.style.display = 'block';
+            return;
+        }
+
+        closeModal('modal-nova-consulta');
+        showToast('Consulta agendada.');
+        window.onConsultaAtualizada(scheduleDate);
+    } catch {
+        erroEl.textContent = 'Erro de conexão.';
+        erroEl.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Agendar';
+    }
+}
+
+function abrirDetalhesConsulta(consulta, somenteLeitura = false) {
+    consultaSelecionada = consulta;
+
+    document.getElementById('dc-visualizacao').style.display = 'block';
+    document.getElementById('dc-edicao').style.display = 'none';
+
+    const dt = new Date(consulta.scheduleDate);
+    const podeEditar = !somenteLeitura && consulta.pacienteId
+        && consulta.status !== 'Cancelada' && consulta.status !== 'Finalizado';
+
+    document.getElementById('dc-paciente').textContent = consulta.pacienteNome || consulta.title;
+    document.getElementById('dc-titulo').textContent   = consulta.title || '—';
+    document.getElementById('dc-data').textContent     = dt.toLocaleDateString('pt-BR');
+    document.getElementById('dc-hora').textContent     = `${dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} · ${consulta.durationMinutes} min`;
+
+    const statusEl = document.getElementById('dc-status');
+    statusEl.textContent = consulta.status;
+    statusEl.className = 'adm-badge ' + (STATUS_BADGE[consulta.status] || 'adm-badge-gray');
+
+    document.getElementById('dc-acoes').style.display = podeEditar ? 'flex' : 'none';
+
+    openModal('modal-detalhes-consulta');
+}
+
+function mostrarEdicaoConsulta(modo) {
+    if (!consultaSelecionada) return;
+
+    document.getElementById('dc-visualizacao').style.display = 'none';
+    document.getElementById('dc-edicao').style.display = 'block';
+    document.getElementById('ed-erro').style.display = 'none';
+
+    const completo = modo === 'editar';
+    document.getElementById('ed-titulo-group').style.display = completo ? 'block' : 'none';
+    document.getElementById('ed-status-group').style.display = completo ? 'block' : 'none';
+
+    const dt = new Date(consultaSelecionada.scheduleDate);
+    document.getElementById('ed-id').value      = consultaSelecionada.calendarId;
+    document.getElementById('ed-titulo').value  = consultaSelecionada.title || '';
+    document.getElementById('ed-status').value  = consultaSelecionada.status;
+    document.getElementById('ed-data').value    = dataLocalStr(dt);
+    document.getElementById('ed-hora').value    = horaLocalStr(dt);
+    document.getElementById('ed-duracao').value = consultaSelecionada.durationMinutes;
+}
+
+function esconderEdicaoConsulta() {
+    document.getElementById('dc-visualizacao').style.display = 'block';
+    document.getElementById('dc-edicao').style.display = 'none';
+}
+
+async function salvarEdicaoConsulta() {
+    const id   = document.getElementById('ed-id').value;
+    const data = document.getElementById('ed-data').value;
+    const hora = document.getElementById('ed-hora').value;
+    const erroEl = document.getElementById('ed-erro');
+
+    if (data && data < dataLocalStr(new Date())) {
+        erroEl.textContent = 'Não é possível agendar consultas em datas anteriores.';
+        erroEl.style.display = 'block';
+        return;
+    }
+    if (data && hora && (hora < '07:00' || hora >= '20:00')) {
+        erroEl.textContent = 'Só é possível agendar consultas entre 07:00 e 19:59.';
+        erroEl.style.display = 'block';
+        return;
+    }
+
+    const body = {
+        title: document.getElementById('ed-titulo-group').style.display !== 'none'
+            ? document.getElementById('ed-titulo').value.trim() : undefined,
+        status: document.getElementById('ed-status-group').style.display !== 'none'
+            ? document.getElementById('ed-status').value : undefined,
+        scheduleDate: data && hora ? `${data}T${hora}:00` : undefined,
+        durationMinutes: parseInt(document.getElementById('ed-duracao').value, 10) || undefined,
+    };
+
+    try {
+        const res = await fetch(`/api/PsicologoAgenda/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(body)
+        });
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            erroEl.textContent = data.message || 'Erro ao salvar.';
+            erroEl.style.display = 'block';
+            return;
+        }
+
+        closeModal('modal-detalhes-consulta');
+        showToast('Consulta atualizada.');
+        window.onConsultaAtualizada(body.scheduleDate);
+    } catch {
+        erroEl.textContent = 'Erro de conexão.';
+        erroEl.style.display = 'block';
+    }
+}
+
+async function cancelarConsulta() {
+    if (!consultaSelecionada) return;
+    if (!confirm('Cancelar esta consulta?')) return;
+
+    try {
+        const res = await fetch(`/api/PsicologoAgenda/${consultaSelecionada.calendarId}/cancel`, {
+            method: 'PATCH',
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error();
+
+        closeModal('modal-detalhes-consulta');
+        showToast('Consulta cancelada.');
+        window.onConsultaAtualizada();
+    } catch {
+        showToast('Erro ao cancelar consulta.', false);
+    }
+}
+
+async function finalizarConsulta() {
+    if (!consultaSelecionada) return;
+    if (!confirm('Finalizar esta consulta?')) return;
+
+    try {
+        const res = await fetch(`/api/PsicologoAgenda/${consultaSelecionada.calendarId}/finalizar`, {
+            method: 'PATCH',
+            credentials: 'include',
+        });
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            showToast(data.message || 'Erro ao finalizar consulta.', false);
+            return;
+        }
+
+        closeModal('modal-detalhes-consulta');
+        showToast('Consulta finalizada.');
+        window.onConsultaAtualizada();
+    } catch {
+        showToast('Erro ao finalizar consulta.', false);
+    }
+}
+
+carregarPacientes();
+</script>
+
+<script>
+    const HORA_INICIO = 7;
+    const HORA_FIM = 19;
+    const ALTURA_HORA = 56;
+    const DIAS_SEMANA = ['Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+    let inicioSemana = inicioDaSemana(new Date());
+    let consultasSemana = [];
+    const inicioSemanaAtual = inicioDaSemana(new Date());
+
+    function inicioDaSemana(data) {
+        const d = new Date(data);
+        const diff = (d.getDay() + 6) % 7; // 0 = segunda
+        d.setDate(d.getDate() - diff);
+        d.setHours(0,0,0,0);
+        return d;
+    }
+
+    function inicioDoDia(data) {
+        const d = new Date(data);
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+
+    function ehHojeOuDepois(scheduleDate) {
+        return inicioDoDia(scheduleDate) >= inicioDoDia(new Date());
+    }
+
+    function mudarSemana(delta) {
+        if (delta < 0 && inicioSemana.getTime() <= inicioSemanaAtual.getTime()) return;
+        inicioSemana.setDate(inicioSemana.getDate() + delta * 7);
+        carregarAgenda();
+    }
+
+    function irParaHoje() {
+        inicioSemana = inicioDaSemana(new Date());
+        carregarAgenda();
+    }
+
+    function atualizarNavSemana() {
+        const btnAnterior = document.getElementById('btn-semana-anterior');
+        const naSemanaAtual = inicioSemana.getTime() <= inicioSemanaAtual.getTime();
+        btnAnterior.disabled = naSemanaAtual;
+        btnAnterior.style.opacity = naSemanaAtual ? '0.4' : '1';
+        btnAnterior.style.cursor = naSemanaAtual ? 'not-allowed' : 'pointer';
+    }
+
+    function renderHead() {
+        const hoje = new Date(); hoje.setHours(0,0,0,0);
+        let html = '<div class="cal-head-cell"></div>';
+        for (let i = 0; i < 6; i++) {
+            const dia = new Date(inicioSemana); dia.setDate(dia.getDate() + i);
+            const isHoje = dia.getTime() === hoje.getTime();
+            html += `<div class="cal-head-cell ${isHoje ? 'today' : ''}">
+                <div class="cal-head-day">${DIAS_SEMANA[i]}</div>
+                <div class="cal-head-num">${dia.getDate()}</div>
+            </div>`;
+        }
+        document.getElementById('cal-head').innerHTML = html;
+
+        const fimSemana = new Date(inicioSemana); fimSemana.setDate(fimSemana.getDate() + 5);
+        const fmt = d => d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
+        document.getElementById('cal-label').textContent = `${fmt(inicioSemana)} – ${fmt(fimSemana)} de ${fimSemana.getFullYear()}`;
+    }
+
+    function renderBody() {
+        let html = '<div class="cal-hour-col">';
+        for (let h = HORA_INICIO; h <= HORA_FIM; h++) {
+            html += `<div class="cal-hour-label">${String(h).padStart(2,'0')}:00</div>`;
+        }
+        html += '</div>';
+
+        for (let i = 0; i < 6; i++) {
+            const dia = new Date(inicioSemana); dia.setDate(dia.getDate() + i);
+            const doDia = consultasSemana.filter(c => {
+                if (!ehHojeOuDepois(c.scheduleDate)) return false;
+                const dt = new Date(c.scheduleDate);
+                return dt.getFullYear() === dia.getFullYear() && dt.getMonth() === dia.getMonth() && dt.getDate() === dia.getDate();
+            });
+
+            let chips = '';
+            doDia.forEach(c => {
+                const dt = new Date(c.scheduleDate);
+                const minutosDoInicio = (dt.getHours() - HORA_INICIO) * 60 + dt.getMinutes();
+                const top = (minutosDoInicio / 60) * ALTURA_HORA;
+                const altura = Math.max((c.durationMinutes / 60) * ALTURA_HORA, 22);
+                const isBloqueio = !c.pacienteId;
+                const isCancelada = c.status === 'Cancelada';
+                const isFinalizada = c.status === 'Finalizado';
+                const nome = c.pacienteNome || c.title;
+
+                const cls = isCancelada ? 'cal-chip-cancel' : (isFinalizada ? 'cal-chip-final' : (isBloqueio ? 'cal-chip-block' : ''));
+
+                chips += `<div class="cal-chip ${cls}"
+                    style="top:${top}px;height:${altura}px"
+                    onclick='abrirDetalhesConsulta(${JSON.stringify(c).replace(/'/g, "&apos;")})'>
+                    ${isBloqueio ? '<i class="ti ti-lock" style="font-size:11px;margin-right:3px"></i>' : ''}${nome}
+                </div>`;
+            });
+
+            html += `<div class="cal-day-col" style="height:${(HORA_FIM - HORA_INICIO + 1) * ALTURA_HORA}px">${chips}</div>`;
+        }
+
+        document.getElementById('cal-body').innerHTML = html;
+    }
+
+    async function carregarAgenda() {
+        renderHead();
+        atualizarNavSemana();
+
+        const fim = new Date(inicioSemana); fim.setDate(fim.getDate() + 6);
+        try {
+            const res = await fetch(`/api/PsicologoAgenda?inicio=${inicioSemana.toISOString()}&fim=${fim.toISOString()}&desdeHoje=true`, { credentials: 'include' });
+            consultasSemana = res.ok ? await res.json() : [];
+        } catch {
+            consultasSemana = [];
+        }
+
+        const ativas = consultasSemana.filter(c =>
+            ehHojeOuDepois(c.scheduleDate) && c.status !== 'Cancelada' && c.status !== 'Finalizado' && c.pacienteId
+        ).length;
+        document.getElementById('cal-sub').textContent =
+            `${ativas} consulta${ativas !== 1 ? 's' : ''} agendada${ativas !== 1 ? 's' : ''} a partir de hoje`;
+
+        renderBody();
+    }
+
+    window.onConsultaAtualizada = function (dataConsultaIso) {
+        if (dataConsultaIso) inicioSemana = inicioDaSemana(new Date(dataConsultaIso));
+        return carregarAgenda();
+    };
+
+    (async () => {
+        await carregarAgenda();
+    })();
+</script>
